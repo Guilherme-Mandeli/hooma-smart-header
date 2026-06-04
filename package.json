@@ -1,0 +1,13 @@
+{
+  "name": "hooma-smart-header",
+  "version": "1.0.0",
+  "description": "Smart Header Control JS Build System",
+  "main": "assets/js/hooma-smart-header.js",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

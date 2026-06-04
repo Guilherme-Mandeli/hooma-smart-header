@@ -1,0 +1,251 @@
+/* Gutenberg Inspired Admin Styles */
+
+.hooma-sh-wrap {
+    max-width: 840px;
+    margin: 20px 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    color: #1d2327;
+}
+
+.hooma-sh-wrap h1 {
+    font-size: 23px;
+    font-weight: 400;
+    margin: 0 0 20px;
+    padding: 9px 0 4px;
+    line-height: 29px;
+}
+
+.hooma-sh-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    margin-bottom: 24px;
+    box-sizing: border-box;
+}
+
+.hooma-sh-section-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #c3c4c7;
+    background: #fcfcfc;
+    border-radius: 4px 4px 0 0;
+}
+
+.hooma-sh-section-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    color: #1d2327;
+}
+
+.hooma-sh-section-header p.description {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.hooma-sh-content {
+    padding: 0;
+}
+
+/* Row Layout replacing form-table */
+.hsh-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.hsh-row.align-top {
+    align-items: flex-start;
+}
+
+.hsh-row:last-child {
+    border-bottom: none;
+}
+
+.hsh-row-content {
+    display: flex;
+    flex-direction: column;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.hsh-row-content:last-child {
+    border-bottom: none;
+}
+
+.hsh-row-label {
+    flex: 0 0 280px; /* Fixed width */
+    max-width: 280px;
+    min-width: 280px;
+    padding-right: 20px;
+}
+
+.hsh-row-label strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1d2327;
+    margin-bottom: 4px;
+}
+
+.hsh-row-label p.description {
+    margin: 0;
+    font-size: 13px;
+    color: #646970;
+}
+
+.hsh-row-control {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.hsh-row-control.is-column {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.hsh-row-control.full-width {
+    flex: 1 1 100%;
+    margin-top: 15px;
+    justify-content: flex-start;
+}
+
+/* Toggle Switch (Instant, No Transition) */
+input[type="checkbox"].hsh-toggle {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    width: 36px !important;
+    height: 20px !important;
+    background: #8c8f94 !important;
+    border-radius: 10px !important;
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    border: 2px solid transparent !important;
+    margin: 0;
+    vertical-align: middle;
+}
+
+input[type="checkbox"].hsh-toggle::before {
+    content: '' !important;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: #fff !important;
+    border-radius: 50% !important;
+    margin: 0 !important;
+}
+
+input[type="checkbox"].hsh-toggle:checked {
+    background: #2271b1 !important;
+}
+
+input[type="checkbox"].hsh-toggle:checked::before {
+    transform: translateX(16px);
+}
+
+input[type="checkbox"].hsh-toggle:focus {
+    box-shadow: 0 0 0 2px #2271b1 !important;
+}
+
+input[type="checkbox"].hsh-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Specific elements */
+.hooma-sh-verify-wrapper { display: flex; align-items: center; gap: 10px; }
+.hooma-sh-status { font-weight: bold; margin-left: 10px; }
+.hooma-sh-status.found { color: #00a32a; }
+.hooma-sh-status.not-found { color: #d63638; }
+
+/* Sub-cards inside views */
+.hsh-sub-card {
+    background: #f6f7f7;
+    border: 1px solid #dcdde1;
+    border-radius: 4px;
+    padding: 16px;
+    margin-top: 10px;
+}
+
+/* Accordion (Details/Summary) Gutenberg style */
+.hsh-accordion {
+    border: 1px solid #dcdde1;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    background: #fff;
+}
+.hsh-accordion > summary {
+    padding: 15px 20px;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+    border-bottom: 1px solid transparent;
+}
+.hsh-accordion > summary::-webkit-details-marker {
+    display: none;
+}
+.hsh-accordion > summary::after {
+    content: '▼';
+    float: right;
+    font-size: 10px;
+    margin-top: 3px;
+    color: #646970;
+}
+.hsh-accordion[open] > summary {
+    border-bottom: 1px solid #f0f0f1;
+}
+.hsh-accordion[open] > summary::after {
+    content: '▲';
+}
+.hsh-accordion-content {
+    padding: 15px 20px;
+}
+
+/* Grouping checkboxes / toggles */
+.hsh-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 5px;
+}
+.hsh-checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Disabled sections */
+.hsh-disabled-section {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Build Console Styles */
+.hsh-build-console {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    border: 1px solid #333;
+    display: none;
+}
+.hsh-build-console .line { margin-bottom: 5px; }
+.hsh-build-console .status-msg { font-weight: bold; color: #569cd6; border-bottom: 1px solid #333; margin-bottom: 10px; padding-bottom: 5px; }
+.hsh-build-console .success-msg { color: #4ec9b0; font-weight: bold; }
+.hsh-build-console .error-msg { color: #f44747; font-weight: bold; }
+.hsh-build-console .warning-msg { color: #ce9178; }
+.hsh-build-console pre { margin: 0; white-space: pre-wrap; word-break: break-all; background: transparent; color: inherit; padding: 0; border: none; }
