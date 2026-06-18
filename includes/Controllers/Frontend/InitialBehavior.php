@@ -47,7 +47,7 @@ class InitialBehavior
             $css = "
                 {$css_selector} {
                     pointer-events: none;
-                    transition: opacity 0.4s ease, transform 0.4s ease-in-out;
+                    transition: opacity 0.4s ease, transform var(--hoo-layout-transition, 400ms ease-in-out);
             ";
 
             if ($animation === 'slide') {

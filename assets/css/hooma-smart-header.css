@@ -4,6 +4,7 @@
         --hoo-main-header-mt: 0px;
         --hoo-header-top: 0px;
         --hoo-pull-up-mt: 0px;
+        --hoo-layout-transition: 400ms ease-in-out;
     }
 
     [data-hoo-top-header="true"] {
@@ -21,9 +22,9 @@
         -ms-transform: translateY(var(--hoo-sh-scroll-y, 0));
         transform: translateY(var(--hoo-sh-scroll-y, 0));
         
-        -webkit-transition: background-color 0.4s ease, opacity 0.4s ease, height 0.4s ease-in-out, margin-top 0.4s ease-in-out, top 0.4s ease-in-out, -webkit-transform 0.4s ease-in-out, transform 0.4s ease-in-out !important;
-        -o-transition: background-color 0.4s ease, opacity 0.4s ease, height 0.4s ease-in-out, margin-top 0.4s ease-in-out, top 0.4s ease-in-out, -webkit-transform 0.4s ease-in-out, transform 0.4s ease-in-out !important;
-        transition: background-color 0.4s ease, opacity 0.4s ease, height 0.4s ease-in-out, margin-top 0.4s ease-in-out, top 0.4s ease-in-out, -webkit-transform 0.4s ease-in-out, transform 0.4s ease-in-out !important;
+        -webkit-transition: background-color 0.4s ease, opacity 0.4s ease, height var(--hoo-layout-transition), margin-top var(--hoo-layout-transition), top var(--hoo-layout-transition), -webkit-transform var(--hoo-layout-transition), transform var(--hoo-layout-transition), -webkit-backdrop-filter var(--hoo-layout-transition), backdrop-filter var(--hoo-layout-transition) !important;
+        -o-transition: background-color 0.4s ease, opacity 0.4s ease, height var(--hoo-layout-transition), margin-top var(--hoo-layout-transition), top var(--hoo-layout-transition), -webkit-transform var(--hoo-layout-transition), transform var(--hoo-layout-transition), backdrop-filter var(--hoo-layout-transition) !important;
+        transition: background-color 0.4s ease, opacity 0.4s ease, height var(--hoo-layout-transition), margin-top var(--hoo-layout-transition), top var(--hoo-layout-transition), -webkit-transform var(--hoo-layout-transition), transform var(--hoo-layout-transition), -webkit-backdrop-filter var(--hoo-layout-transition), backdrop-filter var(--hoo-layout-transition) !important;
         
         margin-top: var(--hoo-main-header-mt) !important;
         top: var(--hoo-header-top, 0px) !important;

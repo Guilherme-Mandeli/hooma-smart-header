@@ -2,7 +2,7 @@
 /*
  * Module Name: Hooma Smart Header
  * Description: Control avanzado y flexible del Header (Scroll, Sticky, Mobile/Tablet, Logos dinámicos).
- * Version: 1.0.260604
+ * Version: 1.0.260617
  * Author: Hooma Team
  * Requires Hooma: 1.0.0
  */

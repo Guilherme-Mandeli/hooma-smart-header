@@ -42,10 +42,22 @@ export const topHeaderModule = {
 
             const toggleTopHeader = () => {
                 const isMobile = window.innerWidth <= 981;
-                const adminBar = document.getElementById('wpadminbar');
-                const adminBarHeight = adminBar ? adminBar.offsetHeight : 0;
                 
-                topHeaderHeight = topHeader.offsetHeight;
+                const state = window.HoomaSH && window.HoomaSH.state;
+                let adminBarHeight = 0;
+                
+                if (state && typeof state.adminBarHeight === 'number') {
+                    adminBarHeight = state.adminBarHeight;
+                } else {
+                    const adminBar = document.getElementById('wpadminbar');
+                    adminBarHeight = adminBar ? adminBar.offsetHeight : 0;
+                }
+                
+                if (state && typeof state.topHeaderHeight === 'number') {
+                    topHeaderHeight = state.topHeaderHeight;
+                } else {
+                    topHeaderHeight = topHeader.offsetHeight;
+                }
 
                 let currentBackupHTop = getBackupHTop(window.innerWidth);
 

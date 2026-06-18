@@ -73,6 +73,11 @@ export const getThreshold = () => {
 };
 // Helper: Get Correct Top Offset (Admin Bar + Top Header)
 export const getCorrectTop = () => {
+    const state = window.HoomaSH && window.HoomaSH.state;
+    if (state && typeof state.adminBarHeight === 'number' && typeof state.topHeaderHeight === 'number') {
+        return state.adminBarHeight + state.topHeaderHeight;
+    }
+
     let top = 0;
     const adminBar = document.getElementById('wpadminbar');
     const topHeader = document.getElementById('top-header');

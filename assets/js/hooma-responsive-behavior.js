@@ -8,6 +8,16 @@ export const responsiveModule = {
     init: function () {
         this.initTime = Date.now();
         this.lastWidth = window.innerWidth;
+        
+        // Ensure state is fully ready
+        if (window.HoomaSH && !window.HoomaSH.state) {
+            window.HoomaSH.state = {};
+        }
+        if (window.HoomaSH.state) {
+            window.HoomaSH.state.isTransitioning = false;
+        }
+
+        this.ensurePlaceholder();
         this.applyLayoutCompensation(true);
         this.initCacheBridge();
 
@@ -26,17 +36,49 @@ export const responsiveModule = {
         const elements = window.HoomaSH.elements;
         const topHeader = document.getElementById('top-header');
         
-        if (elements && elements.header && window.ResizeObserver) {
-            // Initialize the dynamic variables
-            this.calculateHeight(true);
-
-            const headerObserver = new ResizeObserver(() => {
-                this.calculateHeight();
-                this.applyLayoutCompensation();
+        if (elements && elements.header) {
+            // Transition Guards
+            elements.header.addEventListener('transitionstart', () => {
+                if (window.HoomaSH.state) window.HoomaSH.state.isTransitioning = true;
             });
-            
-            headerObserver.observe(elements.header);
-            if (topHeader) headerObserver.observe(topHeader);
+
+            elements.header.addEventListener('transitionend', () => {
+                if (window.HoomaSH.state) window.HoomaSH.state.isTransitioning = false;
+                // Recalculate once transition finishes to ensure exact heights are captured
+                this.applyLayoutCompensation(true);
+            });
+
+            if (window.ResizeObserver) {
+                // Initialize the dynamic variables
+                this.calculateHeight(true);
+
+                const headerObserver = new ResizeObserver(() => {
+                    if (window.HoomaSH.state && window.HoomaSH.state.isTransitioning) {
+                        return; // Ignore updates during CSS transitions
+                    }
+                    this.applyLayoutCompensation();
+                });
+                
+                headerObserver.observe(elements.header);
+                if (topHeader) headerObserver.observe(topHeader);
+            }
+        }
+    },
+
+    ensurePlaceholder: function () {
+        const config = window.HoomaSHConfig;
+        const elements = window.HoomaSH.elements;
+        if (config && config.layout && config.layout.placeholder === '1' && elements && elements.header) {
+            let placeholder = document.getElementById('hoo-sh-placeholder');
+            if (!placeholder) {
+                placeholder = document.createElement('div');
+                placeholder.id = 'hoo-sh-placeholder';
+                if (elements.header.nextSibling) {
+                    elements.header.parentNode.insertBefore(placeholder, elements.header.nextSibling);
+                } else {
+                    elements.header.parentNode.appendChild(placeholder);
+                }
+            }
         }
     },
 
@@ -106,6 +148,12 @@ export const responsiveModule = {
 
         const totalHeight = hMain + hTop;
 
+        // Update cache heights in state
+        if (window.HoomaSH && window.HoomaSH.state) {
+            window.HoomaSH.state.headerHeight = hMain;
+            window.HoomaSH.state.topHeaderHeight = hTop;
+        }
+
         // Always update the dynamic height (real-time state)
         if (totalHeight > 0) {
             document.documentElement.style.setProperty('--hoo-dynamic-header-height', totalHeight + 'px');
@@ -129,21 +177,14 @@ export const responsiveModule = {
             return;
         }
 
+        // Perform calculation exactly once here
         this.calculateHeight(force);
 
-        // Placeholder
+        const hMain = (window.HoomaSH && window.HoomaSH.state && window.HoomaSH.state.headerHeight) || elements.header.offsetHeight;
+
+        // Placeholder visibility
         if (config.layout.placeholder === '1') {
-            let placeholder = document.getElementById('hoo-sh-placeholder');
-            if (!placeholder) {
-                placeholder = document.createElement('div');
-                placeholder.id = 'hoo-sh-placeholder';
-                if (elements.header && elements.header.nextSibling) {
-                    elements.header.parentNode.insertBefore(placeholder, elements.header.nextSibling);
-                } else if (elements.header) {
-                    elements.header.parentNode.appendChild(placeholder);
-                }
-            }
-            
+            const placeholder = document.getElementById('hoo-sh-placeholder');
             if (placeholder) {
                 placeholder.setAttribute('data-hoo-active', 'true');
             }
@@ -153,7 +194,6 @@ export const responsiveModule = {
             if (ph) {
                 ph.removeAttribute('data-hoo-active');
             }
-            // Keep the compensation class if forced fixed is active for current viewport
             if (!this.isForceFixedActive()) {
                 document.body.classList.remove('hoo-sh-compensation');
             } else {
@@ -166,8 +206,19 @@ export const responsiveModule = {
         // Divi page-container padding-top fix
         const pageContainer = document.getElementById('page-container');
         if (pageContainer) {
-            const headerHeight = elements.header ? elements.header.offsetHeight : 0;
-            pageContainer.style.setProperty('padding-top', headerHeight + 'px', 'important');
+            if (document.body.classList.contains('et_transparent_nav')) {
+                if (pageContainer.style.getPropertyValue('padding-top')) {
+                    pageContainer.style.removeProperty('padding-top');
+                }
+            } else {
+                const finalPadding = this.compensationHeight + 'px';
+                if (pageContainer.style.getPropertyValue('padding-top') !== finalPadding) {
+                    const computedPadding = window.getComputedStyle(pageContainer).paddingTop;
+                    if (computedPadding !== finalPadding) {
+                        pageContainer.style.setProperty('padding-top', finalPadding, 'important');
+                    }
+                }
+            }
         }
 
         // Negative Margin (Pull Up)
@@ -179,7 +230,6 @@ export const responsiveModule = {
 
                 if (shouldRun) {
                     targetEl.setAttribute('data-hoo-pull-up', 'true');
-                    // We use the stable compensationHeight (natural height)
                     document.documentElement.style.setProperty('--hoo-pull-up-mt', '-' + this.compensationHeight + 'px');
                 } else {
                     targetEl.removeAttribute('data-hoo-pull-up');
@@ -188,7 +238,7 @@ export const responsiveModule = {
             }
         }
 
-        // Update cache dynamically
+        // Update cache dynamically (deferred)
         this.initCacheBridge();
     },
 
@@ -283,7 +333,7 @@ export const responsiveModule = {
         const elements = window.HoomaSH.elements;
 
         if (config.layout.height_mode === 'auto' && elements.header) {
-            const actualHeight = elements.header.offsetHeight;
+            const actualHeight = (window.HoomaSH && window.HoomaSH.state && window.HoomaSH.state.headerHeight) || elements.header.offsetHeight;
             if (actualHeight > 0) {
                 // Determine active device/viewport responsively to set the correct cookie name
                 const width = window.innerWidth;
@@ -302,11 +352,20 @@ export const responsiveModule = {
                     cookieName = 'hsh_cached_h_tab_' + lastSaved;
                 }
 
-                const match = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
-                const currentCookie = match ? parseInt(match[2]) : 0;
+                const updateCookie = () => {
+                    const match = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
+                    const currentCookie = match ? parseInt(match[2]) : 0;
 
-                if (Math.abs(actualHeight - currentCookie) > 2) {
-                    document.cookie = cookieName + "=" + actualHeight + ";path=/;max-age=31536000;SameSite=Lax";
+                    if (Math.abs(actualHeight - currentCookie) > 2) {
+                        document.cookie = cookieName + "=" + actualHeight + ";path=/;max-age=31536000;SameSite=Lax";
+                    }
+                };
+
+                // Defer cookie write to idle time to avoid layout/render blocking
+                if (typeof window.requestIdleCallback === 'function') {
+                    window.requestIdleCallback(() => updateCookie());
+                } else {
+                    setTimeout(updateCookie, 1000);
                 }
             }
         }

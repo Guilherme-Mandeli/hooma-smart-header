@@ -34,12 +34,18 @@ document.addEventListener('DOMContentLoaded', () => {
     app.state = {
         lastScrollY: window.scrollY,
         isHidden: false,
-        hasShown: false
+        hasShown: false,
+        isFixedLayout: false,
+        headerHeight: 0,
+        topHeaderHeight: 0,
+        adminBarHeight: 0
     };
 
     // Cache Elements
     const header = document.querySelector(config.selectors.header);
     const body = document.body;
+    const topHeader = document.getElementById('top-header');
+    const adminBar = document.getElementById('wpadminbar');
 
     if (!header) {
         return;
@@ -47,10 +53,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     app.elements = {
         header: header,
-        body: body
+        body: body,
+        topHeader: topHeader,
+        adminBar: adminBar
     };
 
     // --- Core Logic ---
+
+    // Measure dimensions and layout state only during layout changes/initialization/resizes
+    const measureStaticDimensions = () => {
+        if (!header) return;
+
+        const adminBarEl = app.elements.adminBar || document.getElementById('wpadminbar');
+        app.state.adminBarHeight = adminBarEl ? adminBarEl.offsetHeight : 0;
+
+        const topHeaderEl = app.elements.topHeader || document.getElementById('top-header');
+        app.state.topHeaderHeight = topHeaderEl ? topHeaderEl.offsetHeight : 0;
+
+        app.state.headerHeight = header.offsetHeight;
+
+        const computedStyle = window.getComputedStyle(header);
+        app.state.isFixedLayout = (computedStyle.position === 'fixed');
+    };
+    
+    // Expose layout measurement function to state or other modules
+    app.measureStaticDimensions = measureStaticDimensions;
     
     const updateHeaderOffset = () => {
         if (!header) return;
@@ -70,9 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
             header.classList.add('hoo-is-scrolled');
         }
 
-        // Check Fixed Status
-        const computedStyle = window.getComputedStyle(header);
-        if (computedStyle.position === 'fixed') {
+        // Check Fixed Status (using cache to avoid getComputedStyle layout thrashing!)
+        if (app.state.isFixedLayout) {
             header.classList.add('hoo-is-fixed');
         } else {
             header.classList.remove('hoo-is-fixed');
@@ -125,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // SMART BLOCK: Responsive / Layout
     if (HOOMA_SH_RESPONSIVE_ENABLED && responsiveModule) {
+        measureStaticDimensions();
         if (typeof responsiveModule.calculateHeight === 'function') responsiveModule.calculateHeight(true);
         if (typeof responsiveModule.init === 'function') responsiveModule.init();
         if (typeof responsiveModule.applyForcedFixed === 'function') responsiveModule.applyForcedFixed();
@@ -151,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listeners
     const runFinalLayout = () => {
+        measureStaticDimensions();
         if (HOOMA_SH_RESPONSIVE_ENABLED) {
             responsiveModule.calculateHeight(true);
             responsiveModule.applyLayoutCompensation(true);
@@ -162,6 +190,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Liberar la restricción inicial de altura máxima del top-header
             document.documentElement.style.setProperty('--hoo-top-header-max-height', 'none');
             document.documentElement.style.setProperty('--hoo-top-header-overflow', 'visible');
+
+            measureStaticDimensions();
 
             if (HOOMA_SH_RESPONSIVE_ENABLED) {
                 responsiveModule.calculateHeight(true);
@@ -244,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lastWidth = currentWidth;
 
+        measureStaticDimensions();
         app.state.lastScrollY = window.scrollY;
         if (HOOMA_SH_RESPONSIVE_ENABLED) {
             responsiveModule.applyLayoutCompensation(true);

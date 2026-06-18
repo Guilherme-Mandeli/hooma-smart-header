@@ -174,7 +174,7 @@ class LayoutResponsive
             content-visibility: visible;
             will-change: transform, opacity;
             transform: translateY(var(--hoo-sh-scroll-y, 0px)) !important;
-            transition: transform 0.4s ease-in-out, opacity 0.4s ease, height 0.4s ease-in-out, margin-top 0.4s ease-in-out, top 0.4s ease-in-out !important;
+            transition: transform var(--hoo-layout-transition, 400ms ease-in-out), opacity 0.4s ease, height var(--hoo-layout-transition, 400ms ease-in-out), margin-top var(--hoo-layout-transition, 400ms ease-in-out), top var(--hoo-layout-transition, 400ms ease-in-out), -webkit-backdrop-filter var(--hoo-layout-transition, 400ms ease-in-out), backdrop-filter var(--hoo-layout-transition, 400ms ease-in-out) !important;
         ";
 
         // --- Block 2: Conditional Fixation (via Body Class) ---
@@ -290,8 +290,8 @@ class LayoutResponsive
                 margin-top: var(--hoo-top-header-mt, 0px) !important;
                 max-height: var(--hoo-top-header-max-height) !important;
                 overflow: var(--hoo-top-header-overflow) !important;
-                -webkit-transition: margin-top 0.4s ease-in-out !important;
-                transition: margin-top 0.4s ease-in-out !important;
+                -webkit-transition: margin-top var(--hoo-layout-transition, 400ms ease-in-out) !important;
+                transition: margin-top var(--hoo-layout-transition, 400ms ease-in-out) !important;
                 will-change: margin-top;
             }
         ";
@@ -317,6 +317,13 @@ class LayoutResponsive
                 z-index: 99999 !important;
             }";
         }
+
+        // Divi page-container padding-top compensation
+        $css .= "
+            body:not(.et_transparent_nav) #page-container {
+                padding-top: var(--hoo-header-height) !important;
+            }
+        ";
 
         // Negative Margin Compensation (Pull Up)
         $layout_opts = isset($options['layout']) ? $options['layout'] : [];
