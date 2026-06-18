@@ -323,6 +323,9 @@ class LayoutResponsive
             body:not(.et_transparent_nav) #page-container {
                 padding-top: var(--hoo-header-height) !important;
             }
+            body.hoo-sh-compensation.admin-bar #et-main-area {
+                padding-top: 0 !important;
+            }
         ";
 
         // Negative Margin Compensation (Pull Up)
