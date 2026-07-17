@@ -1,7 +1,6 @@
 <?php
 defined('HOOMA_PATH') || exit;
-
-$options = get_option('hooma_smart_header_settings');
+$options = \Hooma::settings()->get('hooma_smart_header.settings');
 
 // Default Breakpoints from ThemeDetector
 $detector_defaults = [
@@ -34,7 +33,7 @@ if (!function_exists('_hsh_val')) {
 }
 ?>
 
-<form method="post" action="options.php" id="hooma-sh-form">
+<form method="post" action="" id="hooma-sh-form">
     <?php settings_fields('hooma_smart_header_group'); ?>
     <input type="hidden" name="hooma_smart_header_settings[mobile][sentinel_breakpoints]" value="1">
 

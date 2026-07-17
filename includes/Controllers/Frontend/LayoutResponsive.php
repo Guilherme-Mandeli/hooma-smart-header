@@ -3,10 +3,10 @@
 namespace HoomaModules\HoomaSmartHeader\Controllers\Frontend;
 
 use HoomaModules\HoomaSmartHeader\Services\ConditionEvaluator;
+use Hooma;
 
 class LayoutResponsive
 {
-    private $option_name = 'hooma_smart_header_settings';
 
     public function init()
     {
@@ -18,7 +18,7 @@ class LayoutResponsive
 
     public function add_body_classes($classes)
     {
-        $options = get_option($this->option_name);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $layout = isset($options['layout']) ? $options['layout'] : [];
 
         $has_placeholder = isset($layout['placeholder']) && $layout['placeholder'] === '1';
@@ -72,7 +72,7 @@ class LayoutResponsive
             return $html;
         }
 
-        $options = get_option($this->option_name);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $view_transition_name = isset($options['selectors']['view_transition_name']) ? trim($options['selectors']['view_transition_name']) : '';
         $header_selector = isset($options['selectors']['header']) ? trim($options['selectors']['header']) : '';
 
@@ -112,7 +112,7 @@ class LayoutResponsive
 
     public function inject_placeholder_div()
     {
-        $options = get_option($this->option_name);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         if (isset($options['layout']['placeholder']) && $options['layout']['placeholder'] === '1') {
             echo '<!-- Hooma Smart Header Placeholder -->';
             echo '<div id="hoo-sh-placeholder" style="display:none;"></div>';
@@ -128,7 +128,9 @@ class LayoutResponsive
                         if (h) {
                             var height = h.offsetHeight;
                             if (height > 0) {
-                                document.documentElement.style.setProperty('--hoo-header-height', height + 'px');
+                                if (window.scrollY <= 0) {
+                                    document.documentElement.style.setProperty('--hoo-header-height', height + 'px');
+                                }
                                 document.documentElement.style.setProperty('--hoo-dynamic-header-height', height + 'px');
                                 obs.disconnect();
                             }
@@ -143,7 +145,7 @@ class LayoutResponsive
 
     public function output_critical_css()
     {
-        $options = get_option($this->option_name);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $css = '';
 
         // --- Configuration & Selectors ---

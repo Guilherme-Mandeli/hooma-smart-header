@@ -70,7 +70,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const topHeaderEl = app.elements.topHeader || document.getElementById('top-header');
         app.state.topHeaderHeight = topHeaderEl ? topHeaderEl.offsetHeight : 0;
 
-        app.state.headerHeight = header.offsetHeight;
+        // ONLY measure and overwrite headerHeight if the user is at the top of the page (scroll 0),
+        // where the header is guaranteed to be in its natural state.
+        if (window.scrollY <= 0) {
+            app.state.headerHeight = header.offsetHeight;
+        } else {
+            // If scrolled, preserve existing cached headerHeight, or read from CSS variable if not set yet.
+            if (!app.state.headerHeight || app.state.headerHeight <= 0) {
+                const rootStyle = window.getComputedStyle(document.documentElement);
+                const initialVar = rootStyle.getPropertyValue('--hoo-header-height');
+                if (initialVar && initialVar.trim() !== '') {
+                    app.state.headerHeight = parseFloat(initialVar) - app.state.topHeaderHeight;
+                }
+                if (isNaN(app.state.headerHeight) || app.state.headerHeight <= 0) {
+                    app.state.headerHeight = header.offsetHeight;
+                }
+            }
+        }
 
         const computedStyle = window.getComputedStyle(header);
         app.state.isFixedLayout = (computedStyle.position === 'fixed');
@@ -277,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         measureStaticDimensions();
         app.state.lastScrollY = window.scrollY;
         if (HOOMA_SH_RESPONSIVE_ENABLED) {
-            responsiveModule.applyLayoutCompensation(true);
+            responsiveModule.applyLayoutCompensation(true, true);
             responsiveModule.applyForcedFixed();
         }
         updateHeaderOffset();

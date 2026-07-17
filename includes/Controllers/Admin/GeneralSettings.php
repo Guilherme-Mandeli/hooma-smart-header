@@ -3,6 +3,7 @@
 namespace HoomaModules\HoomaSmartHeader\Controllers\Admin;
 
 use HoomaModules\HoomaSmartHeader\Services\ThemeDetector;
+use Hooma;
 
 class GeneralSettings
 {
@@ -16,7 +17,7 @@ class GeneralSettings
     {
         check_ajax_referer('hooma_sh_nonce', 'nonce');
 
-        if (!current_user_can('manage_options')) {
+        if (!Hooma::auth()->can('manage_options')) {
             wp_send_json_error('No tienes permisos suficientes.');
         }
 
@@ -27,16 +28,14 @@ class GeneralSettings
             wp_send_json_error('Selector vacío');
         }
 
-        $response = wp_remote_get($url, ['timeout' => 10, 'sslverify' => false]);
-
-        if (is_wp_error($response)) {
-            wp_send_json_error('Error al conectar con el sitio: ' . $response->get_error_message());
-        }
-
-        $html = wp_remote_retrieve_body($response);
-
-        if (empty($html)) {
-            wp_send_json_error('Respuesta vacía del sitio');
+        try {
+            $response_obj = Hooma::http()->get($url, ['timeout' => 10, 'sslverify' => false]);
+            $html = $response_obj->body();
+            if (!$response_obj->successful() || empty($html)) {
+                wp_send_json_error('Respuesta vacía o error del sitio: HTTP ' . $response_obj->status());
+            }
+        } catch (\RuntimeException $e) {
+            wp_send_json_error('Error al conectar con el sitio: ' . $e->getMessage());
         }
 
         $found = false;

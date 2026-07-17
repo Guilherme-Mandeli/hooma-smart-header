@@ -29,7 +29,7 @@ export const responsiveModule = {
                 return;
             }
             this.lastWidth = currentWidth;
-            this.applyLayoutCompensation(true);
+            this.applyLayoutCompensation(true, true); // Mark as resize event
         });
 
         // Monitor real-time header height changes for --hoo-dynamic-header-height
@@ -44,8 +44,8 @@ export const responsiveModule = {
 
             elements.header.addEventListener('transitionend', () => {
                 if (window.HoomaSH.state) window.HoomaSH.state.isTransitioning = false;
-                // Recalculate once transition finishes to ensure exact heights are captured
-                this.applyLayoutCompensation(true);
+                // Recalculate once transition finishes, but do not force base height updates
+                this.applyLayoutCompensation(false);
             });
 
             if (window.ResizeObserver) {
@@ -82,91 +82,107 @@ export const responsiveModule = {
         }
     },
 
-    calculateHeight: function (force = false) {
+    calculateHeight: function (force = false, isResize = false) {
         const config = window.HoomaSHConfig;
         const elements = window.HoomaSH.elements;
         const topHeader = document.getElementById('top-header');
         
         if (!elements.header) return;
 
-        // We only update the BASE height (--hoo-header-height) if the header is at its natural state (top)
-        // or if we are forcing the update (e.g., during initialization or resize).
-        const isShrunken = elements.header.classList.contains('hoo-is-scrolled') || 
-                           elements.header.classList.contains('hoo-is-sticky') ||
-                           elements.header.classList.contains('hoo-is-hidden');
+        let hMainRealTime = elements.header.offsetHeight;
+        let hTop = topHeader ? topHeader.offsetHeight : 0;
+        const totalRealTimeHeight = hMainRealTime + hTop;
 
-        let hMain = 0;
-        let hTop = 0;
-
-        if (config.layout.height_mode === 'manual' && config.layout.height_val > 0) {
-            hMain = config.layout.height_val;
-        } else {
-            hMain = elements.header.offsetHeight;
+        // Always update the dynamic height (real-time state) for responsive tracking
+        if (totalRealTimeHeight > 0) {
+            document.documentElement.style.setProperty('--hoo-dynamic-header-height', totalRealTimeHeight + 'px');
         }
 
-        if (topHeader) {
-            hTop = topHeader.offsetHeight;
-        }
-
-        if (this.initTime > 0 && (Date.now() - this.initTime < 500)) {
-            const width = window.innerWidth;
-            const mobileSettings = config.mobile || {};
-            const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 768;
-            const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 1024;
-            
-            const isMobile = width <= bpMobile;
-            const isTablet = width > bpMobile && width <= bpTablet;
-
-            // Desktop base
-            let bhDesk = parseFloat(config.layout.backup_height);
-            bhDesk = isNaN(bhDesk) ? 0 : bhDesk;
-            let btDesk = parseFloat(config.layout.backup_offset_height);
-            btDesk = isNaN(btDesk) ? 0 : btDesk;
-
-            // Tablet cascade
-            let bhTablet = parseFloat(config.layout.backup_height_tablet);
-            bhTablet = isNaN(bhTablet) ? bhDesk : bhTablet;
-            let btTablet = parseFloat(config.layout.backup_offset_height_tablet);
-            btTablet = isNaN(btTablet) ? btDesk : btTablet;
-
-            // Mobile cascade
-            let bhMobile = parseFloat(config.layout.backup_height_mobile);
-            bhMobile = isNaN(bhMobile) ? bhTablet : bhMobile;
-            let btMobile = parseFloat(config.layout.backup_offset_height_mobile);
-            btMobile = isNaN(btMobile) ? btTablet : btMobile;
-
-            let finalBackupHMain = isMobile ? bhMobile : (isTablet ? bhTablet : bhDesk);
-            let finalBackupHTop = isMobile ? btMobile : (isTablet ? btTablet : btDesk);
-
-            if (finalBackupHMain > 0) {
-                hMain = finalBackupHMain;
+        // Initialize compensationHeight from CSS variable set by PHP on first load if not set
+        if (!this.compensationHeight || this.compensationHeight <= 0) {
+            const rootStyle = window.getComputedStyle(document.documentElement);
+            const initialVar = rootStyle.getPropertyValue('--hoo-header-height');
+            if (initialVar && initialVar.trim() !== '') {
+                this.compensationHeight = parseFloat(initialVar);
             }
-            if (finalBackupHTop > 0) {
-                hTop = finalBackupHTop;
+            if (isNaN(this.compensationHeight) || this.compensationHeight <= 0) {
+                this.compensationHeight = totalRealTimeHeight;
+            }
+            // Set initial state cache
+            if (window.HoomaSH && window.HoomaSH.state) {
+                window.HoomaSH.state.headerHeight = this.compensationHeight - hTop;
+                window.HoomaSH.state.topHeaderHeight = hTop;
             }
         }
 
-        const totalHeight = hMain + hTop;
+        // We only update the BASE height (compensationHeight, --hoo-header-height, state cache, cookie):
+        // 1. During the first 2 seconds (initial load and validation phase).
+        // 2. Or, during an explicit window resize event.
+        const isInInitialPhase = (this.initTime > 0 && (Date.now() - this.initTime <= 2000));
+        const shouldUpdateBase = isInInitialPhase || isResize;
 
-        // Update cache heights in state
-        if (window.HoomaSH && window.HoomaSH.state) {
-            window.HoomaSH.state.headerHeight = hMain;
-            window.HoomaSH.state.topHeaderHeight = hTop;
-        }
+        if (shouldUpdateBase) {
+            const isAtTop = window.scrollY <= 0;
+            if (isAtTop) {
+                // Safe to measure natural height directly from DOM
+                const naturalTotalHeight = totalRealTimeHeight;
+                if (naturalTotalHeight > 0) {
+                    this.compensationHeight = naturalTotalHeight;
+                    document.documentElement.style.setProperty('--hoo-header-height', naturalTotalHeight + 'px');
+                    
+                    if (window.HoomaSH && window.HoomaSH.state) {
+                        window.HoomaSH.state.headerHeight = hMainRealTime;
+                        window.HoomaSH.state.topHeaderHeight = hTop;
+                    }
+                }
+            } else if (force) {
+                // If we are forced to update (e.g. during a resize event) but the user is scrolled down,
+                // we cannot measure the natural height directly. Instead, we compute it responsively
+                // using the backup height settings configured for the active viewport.
+                const width = window.innerWidth;
+                const mobileSettings = config.mobile || {};
+                const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 768;
+                const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 1024;
+                
+                const isMobile = width <= bpMobile;
+                const isTablet = width > bpMobile && width <= bpTablet;
 
-        // Always update the dynamic height (real-time state)
-        if (totalHeight > 0) {
-            document.documentElement.style.setProperty('--hoo-dynamic-header-height', totalHeight + 'px');
-        }
+                // Desktop base
+                let bhDesk = parseFloat(config.layout.backup_height);
+                bhDesk = isNaN(bhDesk) ? 0 : bhDesk;
+                let btDesk = parseFloat(config.layout.backup_offset_height);
+                btDesk = isNaN(btDesk) ? 0 : btDesk;
 
-        // Only update the BASE height (compensation/placeholder) if safe
-        if (totalHeight > 0 && (!isShrunken || force)) {
-            this.compensationHeight = totalHeight;
-            document.documentElement.style.setProperty('--hoo-header-height', totalHeight + 'px');
+                // Tablet cascade
+                let bhTablet = parseFloat(config.layout.backup_height_tablet);
+                bhTablet = isNaN(bhTablet) ? bhDesk : bhTablet;
+                let btTablet = parseFloat(config.layout.backup_offset_height_tablet);
+                btTablet = isNaN(btTablet) ? btDesk : btTablet;
+
+                // Mobile cascade
+                let bhMobile = parseFloat(config.layout.backup_height_mobile);
+                bhMobile = isNaN(bhMobile) ? bhTablet : bhMobile;
+                let btMobile = parseFloat(config.layout.backup_offset_height_mobile);
+                btMobile = isNaN(btMobile) ? btTablet : btMobile;
+
+                let finalBackupHMain = isMobile ? bhMobile : (isTablet ? bhTablet : bhDesk);
+                let finalBackupHTop = isMobile ? btMobile : (isTablet ? btTablet : btDesk);
+
+                if (finalBackupHMain > 0) {
+                    const naturalTotalHeight = finalBackupHMain + finalBackupHTop;
+                    this.compensationHeight = naturalTotalHeight;
+                    document.documentElement.style.setProperty('--hoo-header-height', naturalTotalHeight + 'px');
+                    
+                    if (window.HoomaSH && window.HoomaSH.state) {
+                        window.HoomaSH.state.headerHeight = finalBackupHMain;
+                        window.HoomaSH.state.topHeaderHeight = finalBackupHTop;
+                    }
+                }
+            }
         }
     },
 
-    applyLayoutCompensation: function (force = false) {
+    applyLayoutCompensation: function (force = false, isResize = false) {
         const config = window.HoomaSHConfig;
         const elements = window.HoomaSH.elements;
 
@@ -178,7 +194,7 @@ export const responsiveModule = {
         }
 
         // Perform calculation exactly once here
-        this.calculateHeight(force);
+        this.calculateHeight(force, isResize);
 
         const hMain = (window.HoomaSH && window.HoomaSH.state && window.HoomaSH.state.headerHeight) || elements.header.offsetHeight;
 

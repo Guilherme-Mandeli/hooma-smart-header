@@ -1,6 +1,6 @@
 <?php
 defined('HOOMA_PATH') || exit;
-$options = get_option('hooma_smart_header_settings');
+$options = \Hooma::settings()->get('hooma_smart_header.settings');
 $switcher = isset($options['logo_switcher']) ? $options['logo_switcher'] : [];
 
 // Safe helper
@@ -20,7 +20,7 @@ if (!function_exists('_hsh_val')) {
 }
 ?>
 
-<form method="post" action="options.php" id="hooma-sh-form">
+<form method="post" action="" id="hooma-sh-form">
     <style>
     .hsh-logo-columns {
         display: flex;

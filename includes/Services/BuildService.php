@@ -5,10 +5,11 @@
 
 namespace HoomaModules\HoomaSmartHeader\Services;
 
+use Hooma;
+
 class BuildService
 {
     private $root_path;
-    private $option_name = 'hooma_smart_header_settings';
 
     public function __construct()
     {
@@ -29,52 +30,51 @@ class BuildService
             $this->activate_fallback();
             return [
                 'success' => false,
-                'message' => 'Build no posible: ' . $check['reason'],
-                'output' => 'Fallback activado (usando JS sin minificar).',
+                'message' => 'El entorno del servidor no dispone de esbuild. Los scripts y estilos se cargarán en modo de compatibilidad nativa (sin optimizaciones avanzadas).',
+                'output' => 'Detalle técnico: ' . $check['reason'],
                 'fallback' => true
             ];
         }
 
-        // 2. Preparar los flags basados en las opciones actuales
-        $options = get_option($this->option_name);
+        // 2. Obtener el binario de esbuild de Hooma Core
+        $esbuild = Hooma::packages()->get('esbuild');
+        $esbuild_bin = $esbuild->get_entry_path('bin');
+
+        // 3. Preparar las opciones y los flags basados en las opciones actuales
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $flags = $this->prepare_flags($options);
 
-        // 3. Verificar/Instalar dependencias si faltan
-        if (!file_exists($this->root_path . 'node_modules/esbuild')) {
-            $install_res = $this->run_command("npm install");
-            if (!$install_res['success'] || !file_exists($this->root_path . 'node_modules/esbuild')) {
-                $this->activate_fallback();
-                return [
-                    'success' => false,
-                    'message' => 'Error al instalar dependencias.',
-                    'output' => $install_res['output'],
-                    'fallback' => true
-                ];
-            }
+        // 4. Configurar rutas de origen y destino
+        $input_file  = $this->root_path . 'assets/js/hooma-smart-header.js';
+        $output_file = $this->root_path . 'assets/js/dist/hooma-smart-header.min.js';
+
+        // 5. Construir el comando para ejecutar esbuild binario directamente
+        $command_parts = [
+            escapeshellarg($esbuild_bin),
+            escapeshellarg($input_file),
+            '--bundle',
+            '--minify',
+            '--format=iife',
+            '--target=es2015',
+            '--outfile=' . escapeshellarg($output_file)
+        ];
+
+        foreach ($flags as $flag) {
+            $command_parts[] = $flag;
         }
 
-        // 4. Ejecutar el comando de build
-        $command = "node build.js " . implode(' ', $flags);
+        $command_parts[] = '2>&1';
+        $command = implode(' ', $command_parts);
+
+        // 6. Ejecutar compilación
         $build_res = $this->run_command($command);
 
-        // Sanación automática de plataforma para esbuild (ej: desarrollo local en Windows subido a hosting Linux)
-        if (!$build_res['success'] && strpos($build_res['output'], 'another platform') !== false) {
-            $node_modules_dir = $this->root_path . 'node_modules';
-            if (is_dir($node_modules_dir)) {
-                $this->delete_directory($node_modules_dir);
-            }
-            $install_res = $this->run_command("npm install");
-            if ($install_res['success']) {
-                $build_res = $this->run_command($command);
-            }
-        }
-
-        $bundle_exists = file_exists($this->root_path . 'assets/js/dist/hooma-smart-header.min.js');
+        $bundle_exists = Hooma::filesystem()->exists($output_file);
 
         if ($build_res['success'] && $bundle_exists) {
             return [
                 'success' => true,
-                'message' => 'Build completada con éxito.',
+                'message' => 'Build completada con éxito mediante binario esbuild.',
                 'output' => $build_res['output'],
                 'fallback' => false
             ];
@@ -82,7 +82,7 @@ class BuildService
             $this->activate_fallback();
             return [
                 'success' => false,
-                'message' => 'Error durante la construcción.',
+                'message' => 'El entorno del servidor no dispone de esbuild. Los scripts y estilos se cargarán en modo de compatibilidad nativa (sin optimizaciones avanzadas).',
                 'output' => $build_res['output'],
                 'fallback' => true
             ];
@@ -98,16 +98,11 @@ class BuildService
         $dist_dir    = $this->root_path . 'assets/js/dist/';
         $bundle_path = $dist_dir . 'hooma-smart-header.min.js';
 
-        // Asegurar que el directorio existe
-        if (!is_dir($dist_dir)) {
-            @mkdir($dist_dir, 0755, true);
-        }
-
         // Stub: importa el entry point desde la carpeta padre (ruta relativa segura)
         $stub = "// Hooma Smart Header — Fallback Loader (build no disponible)\n";
         $stub .= "import '../hooma-smart-header.js';\n";
 
-        @file_put_contents($bundle_path, $stub);
+        Hooma::filesystem()->write($bundle_path, $stub);
     }
 
     /**
@@ -116,10 +111,18 @@ class BuildService
     private function prepare_flags($options)
     {
         $flags = [];
-        $flags[] = '--logo=' . (isset($options['logo_switcher']['enabled']) && $options['logo_switcher']['enabled'] === '1' ? '1' : '0');
-        $flags[] = '--initial=' . (isset($options['behavior']['hide_on_scroll']) && $options['behavior']['hide_on_scroll'] === '1' ? '1' : '0');
-        $flags[] = '--scroll=' . (isset($options['scroll_behavior']['enabled']) && $options['scroll_behavior']['enabled'] === '1' ? '1' : '0');
-        $flags[] = '--responsive=1';
+        
+        $logo_enabled       = (isset($options['logo_switcher']['enabled']) && $options['logo_switcher']['enabled'] === '1') ? 'true' : 'false';
+        $initial_enabled    = (isset($options['behavior']['hide_on_scroll']) && $options['behavior']['hide_on_scroll'] === '1') ? 'true' : 'false';
+        $scroll_enabled     = (isset($options['scroll_behavior']['enabled']) && $options['scroll_behavior']['enabled'] === '1') ? 'true' : 'false';
+        $responsive_enabled = 'true';
+        
+        $flags[] = '--define:process.env.BUILD_MODE="production"';
+        $flags[] = '--define:HOOMA_SH_LOGO_ENABLED=' . $logo_enabled;
+        $flags[] = '--define:HOOMA_SH_INITIAL_ENABLED=' . $initial_enabled;
+        $flags[] = '--define:HOOMA_SH_SCROLL_ENABLED=' . $scroll_enabled;
+        $flags[] = '--define:HOOMA_SH_RESPONSIVE_ENABLED=' . $responsive_enabled;
+        
         return $flags;
     }
 
@@ -163,19 +166,5 @@ class BuildService
         ];
     }
 
-    /**
-     * Elimina un directorio y su contenido de forma recursiva.
-     */
-    private function delete_directory($dir)
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-        $files = array_diff(scandir($dir), ['.', '..']);
-        foreach ($files as $file) {
-            $path = $dir . DIRECTORY_SEPARATOR . $file;
-            is_dir($path) ? $this->delete_directory($path) : @unlink($path);
-        }
-        @rmdir($dir);
-    }
+
 }

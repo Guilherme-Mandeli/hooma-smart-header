@@ -2,7 +2,7 @@
 /*
  * Module Name: Hooma Smart Header
  * Description: Control avanzado y flexible del Header (Scroll, Sticky, Mobile/Tablet, Logos dinámicos).
- * Version: 1.0.260618
+ * Version: 1.0.260717
  * Author: Hooma Team
  * Requires Hooma: 1.0.0
  */
@@ -12,7 +12,7 @@ defined('HOOMA_PATH') || exit;
 // O Core injeta: $module_namespace, $module_slug, $module_version, $modules_url
 
 if (defined('WP_DEBUG') && WP_DEBUG) {
-    error_log('Hooma SH Index: Loaded. Slug: ' . (isset($module_slug) ? $module_slug : 'unset'));
+    Hooma::logger()->debug('Hooma SH Index: Loaded. Slug: ' . $module_slug);
 }
 
 if (is_admin()) {

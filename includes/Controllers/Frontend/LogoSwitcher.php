@@ -3,10 +3,10 @@
 namespace HoomaModules\HoomaSmartHeader\Controllers\Frontend;
 
 use HoomaModules\HoomaSmartHeader\Services\ThemeDetector;
+use Hooma;
 
 class LogoSwitcher
 {
-    private $option_name = 'hooma_smart_header_settings';
 
     public function init()
     {
@@ -16,7 +16,7 @@ class LogoSwitcher
 
     public function setup_initial_logo()
     {
-        $options = get_option($this->option_name, []);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $switcher = isset($options['logo_switcher']) ? $options['logo_switcher'] : [];
 
         // 1. Basic Enabled Check
@@ -42,6 +42,9 @@ class LogoSwitcher
 
         $initial_logo = esc_url($initial_logo);
 
+        // Permitir que otros módulos modifiquen el logo inicial dinámicamente mediante el bus de eventos
+        $initial_logo = Hooma::events()->filter('hooma_smart_header.initial_logo', $initial_logo, $options);
+
         // Detect Strategy
         $adapter = ThemeDetector::get_adapter();
 
@@ -49,13 +52,13 @@ class LogoSwitcher
         $adapter->apply_initial_logo($initial_logo);
 
         // Save state (optional debug info, only for administrators to avoid DB write overhead on public visits)
-        if (current_user_can('manage_options')) {
-            update_option('hooma_sh_last_run_strategy', [
+        if (Hooma::auth()->can('manage_options')) {
+            Hooma::cache()->set('hooma_sh_last_run_strategy', [
                 'strategy' => $adapter->get_name(),
                 'fallback' => $adapter->requires_js_fallback(),
                 'timestamp' => time(),
                 'theme' => get_stylesheet()
-            ], false);
+            ]);
         }
     }
 

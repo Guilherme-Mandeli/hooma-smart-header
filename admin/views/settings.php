@@ -2,7 +2,7 @@
 defined('HOOMA_PATH') || exit;
 
 // Retrieve existing options
-$options = get_option('hooma_smart_header_settings');
+$options = \Hooma::settings()->get('hooma_smart_header.settings');
 
 // Debugging
 if (defined('WP_DEBUG') && WP_DEBUG) {
@@ -65,10 +65,9 @@ if (!function_exists('_hsh_val')) {
 }
 ?>
 
-<div class="wrap hooma-sh-wrap">
-    <h1>Smart Header Control</h1>
 
-    <form method="post" action="options.php" id="hooma-sh-form">
+
+    <form method="post" action="" id="hooma-sh-form">
         <?php settings_fields('hooma_smart_header_group'); ?>
 
         <!-- Sentinel to ensure 'selectors' key is sent -->
@@ -156,5 +155,4 @@ if (!function_exists('_hsh_val')) {
     <div style="margin-top: 30px; border-top: 1px solid #dcdde1; padding-top: 20px; color: #646970; font-size: 13px;">
         <span style="margin-right: 20px;"><strong>Versión:</strong> <?php echo esc_html($module_version); ?></span>
         <span><strong>Tema Detectado:</strong> <?php echo esc_html(wp_get_theme()->get('Name')); ?></span>
-    </div>
-</div>
+    </div>

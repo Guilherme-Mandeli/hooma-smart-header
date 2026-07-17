@@ -2,9 +2,10 @@
 
 namespace HoomaModules\HoomaSmartHeader\Controllers\Frontend;
 
+use Hooma;
+
 class LogoPreloader
 {
-    private $option_name = 'hooma_smart_header_settings';
     private $cache_key = 'hooma_sh_header_images_cache';
 
     public function init()
@@ -22,8 +23,8 @@ class LogoPreloader
     public function output_preloads()
     {
         // Obtener directamente del caché para máxima velocidad (cero consultas pesadas por página)
-        $cached_data = get_option($this->cache_key, false);
-        $options = get_option($this->option_name);
+        $cached_data = Hooma::cache()->get($this->cache_key, false);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $last_saved = is_array($options) && isset($options['last_saved']) ? $options['last_saved'] : 0;
 
         if (is_array($cached_data) && isset($cached_data['last_saved']) && $cached_data['last_saved'] === $last_saved && isset($cached_data['images'])) {
@@ -32,6 +33,9 @@ class LogoPreloader
             // Si el caché no existe, es antiguo o no coincide el last_saved
             $images_to_preload = $this->get_native_images(is_array($options) ? $options : null);
         }
+
+        // Filtro global del Core para permitir a otros módulos añadir URLs a precargar
+        $images_to_preload = Hooma::events()->filter('hooma_smart_header.preloads', $images_to_preload, $options);
 
         // Deduping por src
         $merged = [];
@@ -55,7 +59,7 @@ class LogoPreloader
     public function get_native_images($options = null)
     {
         if ($options === null) {
-            $options = get_option($this->option_name);
+            $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         }
         $images = [];
 
@@ -103,7 +107,7 @@ class LogoPreloader
     public function warm_cache($options = null)
     {
         if ($options === null) {
-            $options = get_option($this->option_name);
+            $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         }
         $native_images = $this->get_native_images($options);
         $last_saved = is_array($options) && isset($options['last_saved']) ? $options['last_saved'] : 0;
@@ -115,7 +119,7 @@ class LogoPreloader
             'last_saved' => $last_saved,
             'images'     => $native_images
         ];
-        update_option($this->cache_key, $cache_data);
+        Hooma::cache()->set($this->cache_key, $cache_data);
     }
 
     public function maybe_trigger_scan_or_buffer()
@@ -129,8 +133,8 @@ class LogoPreloader
             return;
         }
 
-        $cached_data = get_option($this->cache_key, false);
-        $options = get_option($this->option_name);
+        $cached_data = Hooma::cache()->get($this->cache_key, false);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $last_saved = is_array($options) && isset($options['last_saved']) ? $options['last_saved'] : 0;
 
         // Si la caché ya existe, está marcada como escaneada y el last_saved coincide, no hacemos nada
@@ -140,13 +144,13 @@ class LogoPreloader
 
         // Si la caché está fría, usamos un semáforo transient para prevenir Race Conditions
         $lock_key = 'hsh_preloader_scan_lock';
-        if (get_transient($lock_key)) {
+        if (Hooma::cache()->get($lock_key)) {
             // Ya hay un escaneo en cola o proceso por otra petición, omitimos para evitar sobrecarga de CPU
             return;
         }
 
         // Establecer el semáforo por 30 segundos
-        set_transient($lock_key, '1', 30);
+        Hooma::cache()->set($lock_key, '1', 30);
 
         // Disparar trigger asíncrono no bloqueante
         $this->trigger_async_scan($last_saved);
@@ -155,21 +159,25 @@ class LogoPreloader
     private function trigger_async_scan($last_saved)
     {
         $token = wp_generate_password(20, false);
-        set_transient('hsh_scan_token_' . $last_saved, $token, 60);
+        Hooma::cache()->set('hsh_scan_token_' . $last_saved, $token, 60);
 
         $url = add_query_arg([
             'hsh_do_background_scan' => $token,
             'hsh_version'            => $last_saved
         ], home_url('/'));
 
-        wp_remote_get($url, [
-            'blocking'  => false,
-            'timeout'   => 0.5,
-            'sslverify' => false,
-            'headers'   => [
-                'User-Agent' => 'HoomaSmartHeaderPreloaderTrigger/1.0'
-            ]
-        ]);
+        try {
+            Hooma::http()->get($url, [
+                'blocking'  => false,
+                'timeout'   => 0.5,
+                'sslverify' => false,
+                'headers'   => [
+                    'User-Agent' => 'HoomaSmartHeaderPreloaderTrigger/1.0'
+                ]
+            ]);
+        } catch (\RuntimeException $e) {
+            Hooma::logger()->error('Hooma SH Preloader Trigger Error: ' . $e->getMessage());
+        }
     }
 
     public function handle_async_scan_trigger()
@@ -181,20 +189,20 @@ class LogoPreloader
         $token = sanitize_text_field($_GET['hsh_do_background_scan']);
         $last_saved = intval($_GET['hsh_version']);
 
-        $saved_token = get_transient('hsh_scan_token_' . $last_saved);
+        $saved_token = Hooma::cache()->get('hsh_scan_token_' . $last_saved);
 
         if (!$saved_token || $saved_token !== $token) {
             return;
         }
 
         // Consumir el token de inmediato
-        delete_transient('hsh_scan_token_' . $last_saved);
+        Hooma::cache()->delete('hsh_scan_token_' . $last_saved);
 
         // Realizar el escaneo completo
         $this->scan_public_html_and_save($last_saved);
 
         // Liberar el semáforo
-        delete_transient('hsh_preloader_scan_lock');
+        Hooma::cache()->delete('hsh_preloader_scan_lock');
 
         exit;
     }
@@ -202,7 +210,7 @@ class LogoPreloader
     public function scan_public_html_and_save($last_saved, $options = null)
     {
         if ($options === null) {
-            $options = get_option($this->option_name);
+            $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         }
 
         $header_selector = isset($options['selectors']['header']) ? trim($options['selectors']['header']) : '';
@@ -215,20 +223,25 @@ class LogoPreloader
                 'last_saved' => $last_saved,
                 'images'     => $native_images
             ];
-            update_option($this->cache_key, $cache_data);
+            Hooma::cache()->set($this->cache_key, $cache_data);
             return;
         }
 
         // Petición loopback a la página principal
         $url = add_query_arg('hsh_preloader_scan', '1', home_url('/'));
         
-        $response = wp_remote_get($url, [
-            'timeout'   => 15,
-            'sslverify' => false,
-            'headers'   => [
-                'User-Agent' => 'HoomaSmartHeaderPreloaderScanner/1.0'
-            ]
-        ]);
+        try {
+            $response_obj = Hooma::http()->get($url, [
+                'timeout'   => 15,
+                'sslverify' => false,
+                'headers'   => [
+                    'User-Agent' => 'HoomaSmartHeaderPreloaderScanner/1.0'
+                ]
+            ]);
+            $response = $response_obj->raw();
+        } catch (\RuntimeException $e) {
+            $response = new \WP_Error('http_error', $e->getMessage());
+        }
 
         if (is_wp_error($response)) {
             // Guardamos los logos conocidos en caso de error HTTP para evitar re-intentos infinitos
@@ -237,7 +250,7 @@ class LogoPreloader
                 'last_saved' => $last_saved,
                 'images'     => $native_images
             ];
-            update_option($this->cache_key, $cache_data);
+            Hooma::cache()->set($this->cache_key, $cache_data);
             return;
         }
 
@@ -250,7 +263,7 @@ class LogoPreloader
                 'last_saved' => $last_saved,
                 'images'     => $native_images
             ];
-            update_option($this->cache_key, $cache_data);
+            Hooma::cache()->set($this->cache_key, $cache_data);
             return;
         }
 
@@ -321,6 +334,6 @@ class LogoPreloader
             'last_saved' => $last_saved,
             'images'     => $all_images
         ];
-        update_option($this->cache_key, $cache_data);
+        Hooma::cache()->set($this->cache_key, $cache_data);
     }
 }

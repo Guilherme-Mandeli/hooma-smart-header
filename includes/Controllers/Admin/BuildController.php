@@ -2,6 +2,8 @@
 
 namespace HoomaModules\HoomaSmartHeader\Controllers\Admin;
 
+use Hooma;
+
 class BuildController
 {
     private $option_name = 'hooma_smart_header_settings';
@@ -15,7 +17,7 @@ class BuildController
     {
         check_ajax_referer('hooma_sh_nonce', 'nonce');
 
-        if (!current_user_can('manage_options')) {
+        if (!Hooma::auth()->can('manage_options')) {
             wp_send_json_error('No tienes permisos suficientes.');
         }
 

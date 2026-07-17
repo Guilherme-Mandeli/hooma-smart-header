@@ -2,6 +2,8 @@
 
 namespace HoomaModules\HoomaSmartHeader\Controllers\Admin;
 
+use Hooma;
+
 class AdminController
 {
     private $slug;
@@ -20,7 +22,39 @@ class AdminController
     public function init()
     {
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('Hooma SH AdminController: init called. Slug: ' . $this->slug);
+            Hooma::logger()->debug('Hooma SH AdminController: init called. Slug: ' . $this->slug);
+        }
+
+        // Handle native form submission fallback
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            Hooma::logger()->debug('init fallback: POST request detected.');
+            if (isset($_POST['hooma_smart_header_settings'])) {
+                Hooma::logger()->debug('init fallback: hooma_smart_header_settings is set.');
+                if (isset($_POST['_wpnonce'])) {
+                    $nonce_verified = wp_verify_nonce($_POST['_wpnonce'], 'hooma_smart_header_group-options');
+                    Hooma::logger()->debug('init fallback: Nonce verification result: ' . ($nonce_verified ? 'true' : 'false'));
+                    if ($nonce_verified) {
+                        $input = $_POST['hooma_smart_header_settings'];
+                        $sanitized = $this->sanitize_settings($input);
+                        
+                        $updated = Hooma::settings()->set('hooma_smart_header.settings', $sanitized);
+                        Hooma::logger()->debug('init fallback: Settings saved. Result: ' . ($updated ? 'true' : 'false'));
+                        
+                        Hooma::events()->dispatch('hooma_smart_header.settings_saved', $sanitized);
+                        
+                        $build_service = new \HoomaModules\HoomaSmartHeader\Services\BuildService();
+                        $build_res = $build_service->execute();
+                        Hooma::logger()->debug('init fallback: Build executed. Success: ' . ($build_res['success'] ? 'true' : 'false'));
+                        
+                        // Add admin success notice
+                        add_action('admin_notices', function () {
+                            echo '<div class="notice notice-success is-dismissible"><p>Configuración guardada y reconstruida correctamente.</p></div>';
+                        });
+                    }
+                } else {
+                    Hooma::logger()->debug('init fallback: _wpnonce is missing.');
+                }
+            }
         }
 
         // Critical Fix: check if admin_init already passed
@@ -46,7 +80,7 @@ class AdminController
     public function register_settings()
     {
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('Hooma SH AdminController: register_settings executing.');
+            Hooma::logger()->debug('Hooma SH AdminController: register_settings executing.');
         }
         register_setting($this->option_group, $this->option_name, [
             'sanitize_callback' => [$this, 'sanitize_settings']
@@ -55,7 +89,7 @@ class AdminController
 
     public function sanitize_settings($input)
     {
-        $existing = get_option($this->option_name);
+        $existing = Hooma::settings()->get('hooma_smart_header.settings', []);
         if (!is_array($existing)) {
             $existing = [];
         }
@@ -209,14 +243,18 @@ class AdminController
 
     public function handle_ajax_save()
     {
+        Hooma::logger()->debug('handle_ajax_save: AJAX Save Triggered.');
+
         check_ajax_referer('hooma_sh_nonce', 'nonce');
 
-        if (!current_user_can('manage_options')) {
+        if (!Hooma::auth()->can('manage_options')) {
+            Hooma::logger()->error('handle_ajax_save: Permisos insuficientes.');
             wp_send_json_error('No tienes permisos suficientes.');
         }
 
         // The form data comes as a query string or JSON, but usually parsed into $_POST
         if (!isset($_POST['settings'])) {
+            Hooma::logger()->error('handle_ajax_save: No se recibieron configuraciones.');
             wp_send_json_error('No se recibieron configuraciones.');
         }
 
@@ -225,7 +263,10 @@ class AdminController
         // Let's assume the JS sends the serialized form as 'settings'
         parse_str($_POST['settings'], $form_data);
 
+        Hooma::logger()->debug('handle_ajax_save: Form data parsed: ' . json_encode($form_data));
+
         if (!isset($form_data[$this->option_name])) {
+            Hooma::logger()->error('handle_ajax_save: Formato de datos no válido, falta ' . $this->option_name);
             wp_send_json_error('Formato de datos no válido.');
         }
 
@@ -234,9 +275,16 @@ class AdminController
         // Use existing sanitize logic
         $sanitized = $this->sanitize_settings($input);
         
+        Hooma::logger()->debug('handle_ajax_save: Sanitized data: ' . json_encode($sanitized));
+        
         // Update option
-        $updated = update_option($this->option_name, $sanitized);
+        $updated = Hooma::settings()->set('hooma_smart_header.settings', $sanitized);
 
+        Hooma::logger()->debug('handle_ajax_save: Hooma::settings()->set returned: ' . ($updated ? 'true' : 'false'));
+
+        // Dispatch events and rebuild styles/scripts
+        Hooma::events()->dispatch('hooma_smart_header.settings_saved', $sanitized);
+        
         wp_send_json_success([
             'message' => 'Configuración guardada correctamente.',
             'updated' => $updated
@@ -288,31 +336,31 @@ class AdminController
 
         $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'settings';
 
-        wp_enqueue_style('hooma-sh-admin', $this->url . '/assets/css/admin-smart-header.css', [], $this->version);
+        Hooma::assets()->enqueue_style('hooma-sh-admin', $this->url . '/assets/css/admin-smart-header.css', [], $this->version);
 
         // General JS (Settings & Shared verify/restore)
-        wp_enqueue_script('hooma-sh-admin-general', $this->url . '/assets/js/admin-general.js', ['jquery'], $this->version, true);
+        Hooma::assets()->enqueue_script('hooma-sh-admin-general', $this->url . '/assets/js/admin-general.js', ['jquery'], $this->version, true);
 
         // Modules
         if ($active_tab === 'initial-behavior' || $active_tab === 'desktop-behavior') {
-            wp_enqueue_script('hooma-sh-admin-initial', $this->url . '/assets/js/admin-initial-behavior.js', ['jquery'], $this->version, true);
-            wp_enqueue_script('hooma-sh-admin-conditions', $this->url . '/assets/js/admin-conditions.js', ['jquery'], $this->version, true);
+            Hooma::assets()->enqueue_script('hooma-sh-admin-initial', $this->url . '/assets/js/admin-initial-behavior.js', ['jquery'], $this->version, true);
+            Hooma::assets()->enqueue_script('hooma-sh-admin-conditions', $this->url . '/assets/js/admin-conditions.js', ['jquery'], $this->version, true);
         }
 
         if ($active_tab === 'scroll-behavior') {
-            wp_enqueue_script('hooma-sh-admin-conditions', $this->url . '/assets/js/admin-conditions.js', ['jquery'], $this->version, true);
+            Hooma::assets()->enqueue_script('hooma-sh-admin-conditions', $this->url . '/assets/js/admin-conditions.js', ['jquery'], $this->version, true);
         }
 
         if ($active_tab === 'responsive-behavior') {
-            wp_enqueue_script('hooma-sh-admin-responsive', $this->url . '/assets/js/admin-responsive-behavior.js', ['jquery'], $this->version, true);
+            Hooma::assets()->enqueue_script('hooma-sh-admin-responsive', $this->url . '/assets/js/admin-responsive-behavior.js', ['jquery'], $this->version, true);
         }
 
         if ($active_tab === 'logo-switcher') {
-            wp_enqueue_script('hooma-sh-admin-logo', $this->url . '/assets/js/admin-logo-switcher.js', ['jquery'], $this->version, true);
+            Hooma::assets()->enqueue_script('hooma-sh-admin-logo', $this->url . '/assets/js/admin-logo-switcher.js', ['jquery'], $this->version, true);
         }
 
         if ($active_tab === 'build') {
-            wp_enqueue_script('hooma-sh-admin-build', $this->url . '/assets/js/admin-build.js', ['jquery'], $this->version, true);
+            Hooma::assets()->enqueue_script('hooma-sh-admin-build', $this->url . '/assets/js/admin-build.js', ['jquery'], $this->version, true);
         }
 
         // Localize General (renamed handle)

@@ -97,7 +97,7 @@ jQuery(document).ready(function ($) {
                         $console.append('<div class="line status-msg">Proceso finalizado con éxito.</div>');
                     } else {
                         var errorClass = buildRes.data.fallback ? 'warning-msg' : 'error-msg';
-                        var prefix = buildRes.data.fallback ? '⚠ Fallback activado: ' : '✗ Error: ';
+                        var prefix = buildRes.data.fallback ? '⚠ Modo de Compatibilidad: ' : '✗ Error: ';
                         
                         $console.append('<div class="line ' + errorClass + '">' + prefix + buildRes.data.message + '</div>');
                         if (buildRes.data.output) {

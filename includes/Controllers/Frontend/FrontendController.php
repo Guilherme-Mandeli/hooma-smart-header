@@ -3,13 +3,13 @@
 namespace HoomaModules\HoomaSmartHeader\Controllers\Frontend;
 
 use HoomaModules\HoomaSmartHeader\Services\ConditionEvaluator;
+use Hooma;
 
 class FrontendController
 {
     private $slug;
     private $version;
     private $url;
-    private $option_name = 'hooma_smart_header_settings';
 
     public function __construct($slug, $version, $url)
     {
@@ -42,17 +42,17 @@ class FrontendController
 
     public function enqueue_assets()
     {
-        $options = get_option($this->option_name);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $last_saved = isset($options['last_saved']) ? $options['last_saved'] : $this->version;
         $version = $this->version . '.' . $last_saved;
 
         if (defined('WP_DEBUG') && WP_DEBUG) {
             if (isset($options['debug']) && isset($options['behavior']['debug']) && $options['behavior']['debug'] === '1') {
-                error_log('Hooma SH Debug: enqueue_assets running.');
+                Hooma::logger()->debug('Hooma SH Debug: enqueue_assets running.');
             }
         }
 
-        wp_enqueue_style('hooma-smart-header', $this->url . '/assets/css/hooma-smart-header.css', [], $version);
+        Hooma::assets()->enqueue_style('hooma-smart-header', $this->url . '/assets/css/hooma-smart-header.css', [], $version);
 
         // El archivo .min.js siempre existe:
         // - Si la build fue exitosa: contiene el bundle real.
@@ -63,17 +63,13 @@ class FrontendController
 
         // Protección "cold-start": si nunca se ha ejecutado la build ni el fallback,
         // el archivo puede no existir. Lo creamos aquí directamente para evitar el 404.
-        if (!file_exists($bundle_path)) {
-            $dist_dir = dirname($bundle_path);
-            if (!is_dir($dist_dir)) {
-                @mkdir($dist_dir, 0755, true);
-            }
+        if (!Hooma::filesystem()->exists($bundle_path)) {
             $stub  = "// Hooma Smart Header — Fallback Loader (build no disponible)\n";
             $stub .= "import '../hooma-smart-header.js';\n";
-            @file_put_contents($bundle_path, $stub);
+            Hooma::filesystem()->write($bundle_path, $stub);
         }
 
-        wp_enqueue_script('hooma-smart-header', $bundle_url, [], $version, true);
+        Hooma::assets()->enqueue_script('hooma-smart-header', $bundle_url, [], $version, true);
 
         // Pre-calculate conditions
         // ... (rest of the logic remains the same)

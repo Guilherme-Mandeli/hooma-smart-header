@@ -2,9 +2,10 @@
 
 namespace HoomaModules\HoomaSmartHeader\Controllers\Frontend;
 
+use Hooma;
+
 class InitialBehavior
 {
-    private $option_name = 'hooma_smart_header_settings';
 
     public function init()
     {
@@ -14,7 +15,7 @@ class InitialBehavior
 
     public function add_body_classes($classes)
     {
-        $options = get_option($this->option_name);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $behavior = isset($options['behavior']) ? $options['behavior'] : [];
 
         if (!isset($behavior['hide_on_scroll']) || $behavior['hide_on_scroll'] !== '1') {
@@ -31,7 +32,7 @@ class InitialBehavior
 
     public function output_critical_css()
     {
-        $options = get_option($this->option_name);
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
         $behavior = isset($options['behavior']) ? $options['behavior'] : [];
 
         if (isset($behavior['hide_on_scroll']) && $behavior['hide_on_scroll'] === '1') {

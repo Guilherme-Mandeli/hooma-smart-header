@@ -1,7 +1,7 @@
 <?php
 defined('HOOMA_PATH') || exit;
 
-$options = get_option('hooma_smart_header_settings');
+$options = \Hooma::settings()->get('hooma_smart_header.settings');
 $defaults = [
     'header' => 'header',
     'sticky' => '',
@@ -25,16 +25,16 @@ if (!function_exists('_hsh_val')) {
 }
 ?>
 
+<form method="post" action="" id="hooma-sh-form">
+    <?php settings_fields('hooma_smart_header_group'); ?>
+    <input type="hidden" name="hooma_smart_header_settings[behavior][sentinel]" value="1">
+
 <div class="hooma-sh-section">
     <div class="hooma-sh-section-header">
         <h2>Comportamiento inicial</h2>
         <p class="description">Configura cómo se comporta el header cuando el usuario empieza a hacer scroll en la página.</p>
     </div>
     
-    <form method="post" action="options.php" id="hooma-sh-form">
-        <?php settings_fields('hooma_smart_header_group'); ?>
-        <input type="hidden" name="hooma_smart_header_settings[behavior][sentinel]" value="1">
-
         <div class="hooma-sh-content">
             
             <div class="hsh-row">
@@ -146,7 +146,7 @@ if (!function_exists('_hsh_val')) {
                 hsh_toggle_global();
             });
         </script>
-    </form>
+    </div>
 </div>
 
 <!-- Device Settings -->
@@ -175,25 +175,25 @@ if (!function_exists('_hsh_val')) {
                 <p class="description">El comportamiento inicial no se ejecutará en los dispositivos seleccionados.</p>
             </div>
             <div class="hsh-row-control">
-                <input type="hidden" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][sentinel_flags]" value="1">
+                <input type="hidden" name="hooma_smart_header_settings[behavior][sentinel_flags]" value="1">
                 <div class="hsh-checkbox-group">
                     <label>
-                        <input type="hidden" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][mobile][disable_desktop]" value="0">
-                        <input type="checkbox" class="hsh-toggle" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][mobile][disable_desktop]" value="1"
+                        <input type="hidden" name="hooma_smart_header_settings[behavior][mobile][disable_desktop]" value="0">
+                        <input type="checkbox" class="hsh-toggle" name="hooma_smart_header_settings[behavior][mobile][disable_desktop]" value="1"
                             <?php checked(_hsh_val($options, 'behavior.mobile.disable_desktop'), '1'); ?>
                             <?php disabled($use_custom_bp, false); ?>>
                         Desktop
                     </label>
                     <label>
-                        <input type="hidden" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][mobile][disable_tablet]" value="0">
-                        <input type="checkbox" class="hsh-toggle" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][mobile][disable_tablet]" value="1"
+                        <input type="hidden" name="hooma_smart_header_settings[behavior][mobile][disable_tablet]" value="0">
+                        <input type="checkbox" class="hsh-toggle" name="hooma_smart_header_settings[behavior][mobile][disable_tablet]" value="1"
                             <?php checked(_hsh_val($options, 'behavior.mobile.disable_tablet', '0'), '1'); ?>
                             <?php disabled($use_custom_bp, false); ?>>
                         Tablet
                     </label>
                     <label>
-                        <input type="hidden" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][mobile][disable_mobile]" value="0">
-                        <input type="checkbox" class="hsh-toggle" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][mobile][disable_mobile]" value="1"
+                        <input type="hidden" name="hooma_smart_header_settings[behavior][mobile][disable_mobile]" value="0">
+                        <input type="checkbox" class="hsh-toggle" name="hooma_smart_header_settings[behavior][mobile][disable_mobile]" value="1"
                             <?php checked(_hsh_val($options, 'behavior.mobile.disable_mobile', '0'), '1'); ?>
                             <?php disabled($use_custom_bp, false); ?>>
                         Mobile
@@ -215,12 +215,12 @@ if (!function_exists('_hsh_val')) {
             <strong style="margin-bottom: 10px; display: block; font-size: 14px;">1. Modo de aplicación</strong>
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px;">
-                    <input type="radio" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][display_mode]" value="exclude" 
+                    <input type="radio" name="hooma_smart_header_settings[behavior][display_mode]" value="exclude" 
                         <?php checked(_hsh_val($options, 'behavior.display_mode', 'exclude'), 'exclude'); ?>>
                     Funcionar siempre, excepto en…
                 </label>
                 <label style="display: block;">
-                    <input type="radio" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][display_mode]" value="include" 
+                    <input type="radio" name="hooma_smart_header_settings[behavior][display_mode]" value="include" 
                         <?php checked(_hsh_val($options, 'behavior.display_mode'), 'include'); ?>>
                     Funcionar solo en…
                 </label>
@@ -236,7 +236,7 @@ if (!function_exists('_hsh_val')) {
                         if ($type->name === 'attachment') continue;
                     ?>
                         <label style="margin-right: 15px;">
-                            <input type="checkbox" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][display_types][]" 
+                            <input type="checkbox" name="hooma_smart_header_settings[behavior][display_types][]" 
                                 value="<?php echo esc_attr($type->name); ?>" 
                                 <?php checked(in_array($type->name, $selected_types), true); ?>>
                             <?php echo esc_html($type->label); ?>
@@ -245,12 +245,12 @@ if (!function_exists('_hsh_val')) {
                 </div>
 
                 <strong style="margin-bottom: 10px; display: block; font-size: 14px;">3. IDs de entradas o páginas</strong>
-                <input type="text" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][display_ids]" 
+                <input type="text" name="hooma_smart_header_settings[behavior][display_ids]" 
                     value="<?php echo esc_attr(_hsh_val($options, 'behavior.display_ids')); ?>" 
                     class="regular-text" placeholder="Ej: 12, 45" style="width: 100%; margin-bottom: 20px;">
 
                 <strong style="margin-bottom: 10px; display: block; font-size: 14px;">4. Clase de la tag body</strong>
-                <input type="text" form="hooma-sh-form" name="hooma_smart_header_settings[behavior][display_body_classes]" 
+                <input type="text" name="hooma_smart_header_settings[behavior][display_body_classes]" 
                     value="<?php echo esc_attr(_hsh_val($options, 'behavior.display_body_classes')); ?>" 
                     class="regular-text" placeholder="class1, class2" style="width: 100%;">
                 <p class="description" style="margin-top: 5px;">Introduce las clases separadas por comas.</p>
@@ -260,6 +260,7 @@ if (!function_exists('_hsh_val')) {
 </div>
 
 <div style="margin-top: 20px;">
-    <button type="submit" form="hooma-sh-form" class="button button-primary button-large">Guardar Comportamiento</button>
+    <button type="submit" class="button button-primary button-large">Guardar Comportamiento</button>
     <div id="hsh-build-console" class="hsh-build-console"></div>
-</div>
+</div>
+</form>
