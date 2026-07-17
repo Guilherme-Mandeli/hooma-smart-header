@@ -22,7 +22,7 @@ El plugin ofrece funcionalidades completas de **Scroll Reveal**, cabecera flotan
 
 - **Sistema de Compilación Híbrido con esbuild:**
   Compila en caliente el bundle de JavaScript aplicando tree-shaking físico según los módulos que el usuario mantenga activos en la administración.
-  Ofrece un cargador ES Module nativo de contingencia (fallback) si el servidor no dispone de Node.js, garantizando cero errores 404 en el frontend.
+  Ofrece un cargador ES Module nativo de contingencia (fallback) en modo de compatibilidad si el servidor no dispone de esbuild en Hooma Core, garantizando cero errores 404 en el frontend.
 - **Sistema de Prevención de CLS (Cumulative Layout Shift) en Tiempo Real:**
   Inyecta estilos críticos incrustados directamente desde el servidor y ejecuta micro-scripts síncronos inline nada más abrirse el cuerpo de la página.
   Esto reserva el espacio físico exacto de la cabecera antes de que se descarguen los assets estáticos, garantizando un desplazamiento de diseño igual a cero.
@@ -50,8 +50,6 @@ El plugin implementa una arquitectura limpia siguiendo los principios de modular
 ```text
 hooma-smart-header/
 ├── index.php                   # Manifesto y bootstrap del módulo
-├── package.json                # Dependencias de desarrollo de JS (esbuild)
-├── build.js                    # Script de control del compilador esbuild y feature flags
 ├── config/
 │   └── navigation.php          # Configuración de pestañas del panel administrativo
 ├── admin/
@@ -89,34 +87,28 @@ El panel administrativo del plugin se divide en 6 secciones principales de contr
 
 El plugin implementa un sistema inteligente de compilación híbrida para garantizar el máximo rendimiento del frontend:
 
-### Compilación Activa (Node/NPM disponible)
+### Compilación Activa (esbuild disponible)
 
-Si tu servidor cuenta con Node.js y la función de PHP `proc_open` activa, cada vez que guardes los ajustes desde el panel de control, el plugin ejecutará localmente una compilación personalizada mediante `esbuild`:
+Si el servidor cuenta con el paquete de esbuild de Hooma Core y la función de PHP `proc_open` activa, cada vez que guardes los ajustes desde el panel de control, el plugin ejecutará directamente el binario de `esbuild` de Hooma Core.
 
-```bash
-node build.js --logo=1 --scroll=1 --initial=0
-```
+Esto genera un bundle único minificado (`hooma-smart-header.min.js`) aplicando tree-shaking de forma nativa, removiendo físicamente el código de las funciones y módulos que mantengas desactivados, entregando una huella de JS ultra-ligera en el cliente.
 
-Esto genera un bundle único minificado (`hooma-smart-header.min.js`) aplicando tree-shaking, removiendo físicamente el código de las funciones y módulos que mantengas desactivados, entregando una huella de JS ultra-ligera en el cliente.
+### Mecanismo de Fallback (Modo de Compatibilidad)
 
-> Es posible que necesites guardar tus modificaciones dos veces en tu primer intento para que tu ambiente prepare todo lo necesario para la ejecución de la compilación.
-
-### Mecanismo de Fallback (Sin Node/NPM)
-
-Si tu entorno no soporta la ejecución de Node.js en tiempo real (por ejemplo, hosting compartido limitado), el plugin no fallará. De forma automática, generará un stub liviano que encola un cargador ES Module estándar:
+Si tu entorno no soporta la ejecución de esbuild (por ejemplo, por no estar disponible en Hooma Core, falta de permisos de ejecución en el servidor o `proc_open` desactivado), el plugin no fallará. De forma automática, entrará en modo de compatibilidad y generará un stub liviano que encola un cargador ES Module estándar:
 
 ```javascript
-// Fallback Loader (compilación no disponible)
+// Hooma Smart Header — Fallback Loader (build no disponible)
 import "../hooma-smart-header.js";
 ```
 
-Dado que los scripts se cargan de forma nativa en navegadores modernos mediante `type="module"`, el frontend cargará dinámicamente y por separado los archivos JS modularizados de tu carpeta `/assets/js/` con total transparencia y libre de errores.
+Dado que los scripts se cargan de forma nativa en navegadores modernos mediante `type="module"`, el frontend cargará dinámicamente y por separado los archivos JS modularizados de tu carpeta `/assets/js/` con total transparencia y libre de errores, asegurando el correcto funcionamiento del sitio sin los beneficios de optimización y feature flags de esbuild.
 
 ---
 
 ## 📚 Referencia Técnica para Desarrolladores
 
-Para una inmersión completa en la estructura del código, flujos de datos PHP-JS, almacenamiento de base de datos, variables CSS inyectadas en tiempo real y guías detalladas para agregar nuevos campos, por favor consulte la **[Guía Técnica del Desarrollador (TECHNICAL_GUIDE.md)](file:///c:/Users/Recepcio/Documents/Guilherme_Mandeli/Plugins/Hooma%20Modules/Hooma%20Smart%20Header%20Control/hooma-smart-header/TECHNICAL_GUIDE.md)** incluida en la raíz de este plugin.
+Para una inmersión completa en la estructura del código, flujos de datos PHP-JS, almacenamiento de base de datos, variables CSS inyectadas en tiempo real y guías detalladas para agregar nuevos campos, por favor consulte la **[Guía Técnica del Desarrollador (TECHNICAL_GUIDE.md)](./TECHNICAL_GUIDE.md)** incluida en la raíz de este plugin.
 
 ---
 

@@ -7,10 +7,9 @@ $bundle_exists = file_exists($bundle_path);
 $bundle_size = $bundle_exists ? size_format(filesize($bundle_path)) : 'N/A';
 $bundle_date = $bundle_exists ? date_i18n(get_option('date_format') . ' ' . get_option('time_format'), filemtime($bundle_path)) : 'N/A';
 
-// Check environment
-$node_version = shell_exec('node -v');
-$npm_version = shell_exec('npm -v');
-$is_node_available = !empty($node_version);
+// Check environment for esbuild package
+$build_condition = \HoomaModules\HoomaSmartHeader\Services\BuildCondition::check();
+$esbuild_available = $build_condition['possible'];
 
 ?>
 
@@ -66,13 +65,21 @@ $is_node_available = !empty($node_version);
                 <p style="margin-bottom: 20px;">Este proceso unifica todos los archivos JavaScript del frontend en un único archivo minificado. 
                    Además, excluye inteligentemente el código de las funciones que tengas desactivadas.</p>
                 
-                <?php if (!$is_node_available) : ?>
-                    <div class="notice notice-error inline" style="margin: 0;">
-                        <p><strong>Node.js no detectado:</strong> El servidor requiere Node.js instalado para realizar la build. 
-                           Si estás en un entorno local, asegúrate de que <code>node</code> esté en el PATH.</p>
+                <?php if ($esbuild_available) : ?>
+                    <div class="notice notice-success inline" style="margin: 0 0 20px 0;">
+                        <p><strong>Paquete esbuild detectado:</strong> El optimizador esbuild ha sido detectado correctamente y está listo para usarse.</p>
                     </div>
+                    <div class="hooma-sh-build-actions">
+                        <button type="button" id="hsh-start-build" class="button button-primary button-large">
+                            Generar Nueva Build
+                        </button>
+                        <span class="spinner" id="hsh-build-spinner"></span>
+                    </div>
+                    <div id="hsh-build-console" class="hsh-build-console"></div>
                 <?php else : ?>
-                    <p><strong>Entorno:</strong> Node <?php echo esc_html(trim($node_version)); ?> y NPM <?php echo esc_html(trim($npm_version)); ?> detectados.</p>
+                    <div class="notice notice-warning inline" style="margin: 0 0 20px 0;">
+                        <p><strong>Modo de compatibilidad activo:</strong> El paquete esbuild no está disponible en este servidor. El sistema entrará en el modo de compatibilidad y los archivos se entregarán sin los beneficios de optimización de esbuild (como la minificación avanzada, eliminación de código muerto o feature flags).</p>
+                    </div>
                     <div class="hooma-sh-build-actions">
                         <button type="button" id="hsh-start-build" class="button button-primary button-large">
                             Generar Nueva Build
