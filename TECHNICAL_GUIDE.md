@@ -9,18 +9,17 @@ Este documento sirve como un mapa técnico completo y guía de referencia rápid
 ```text
 hooma-smart-header/
 ├── index.php                   # Punto de entrada (bootstrap, Identity Injection del Core)
-├── package.json                # Configuración de dependencias NPM (esbuild)
-├── build.js                    # Script de Node.js para bundler y tree-shaking
 ├── config/
 │   └── navigation.php          # Definición de la estructura de pestañas en el panel administrativo
+├── admin/
+│   └── views/                  # Vistas PHP del panel de configuración
 ├── includes/                   # Código de backend PHP (Autoloading PSR-4)
 │   ├── Lifecycle.php           # Implementación del ciclo de vida del módulo (Install/Uninstall)
 │   ├── Controllers/
 │   │   ├── Admin/              # Lógica administrativa (Admin UI y AJAX)
 │   │   │   ├── AdminController.php   # Controlador principal del panel, encolamiento de scripts y guardado AJAX
 │   │   │   ├── BuildController.php   # Disparador y manejador AJAX para compilación esbuild
-│   │   │   ├── GeneralSettings.php   # Verificación en vivo de selectores y reseteo de defaults
-│   │   │   └── LayoutSettings.php    # Actualización en base de datos de la altura medida del header
+│   │   │   └── GeneralSettings.php   # Verificación en vivo de selectores y reseteo de defaults
 │   │   └── Frontend/           # Lógica pública (Frontend Rendering y CSS/JS inline)
 │   │       ├── FrontendController.php # Orquestador de encolado público e inyección de datos (wp_localize_script)
 │   │       ├── InitialBehavior.php   # Body classes iniciales y CSS crítico de carga (flicker protection)
@@ -28,7 +27,7 @@ hooma-smart-header/
 │   │       ├── LogoPreloader.php     # Optimización LCP mediante pre-cargas y escaneo de DOM por búfer
 │   │       └── LogoSwitcher.php      # Setup del logo inicial usando adaptadores de tema nativos
 │   ├── Services/               # Servicios de lógica compartida
-│   │   ├── BuildCondition.php  # Verificador del entorno de servidor (Node/NPM y proc_open)
+│   │   ├── BuildCondition.php  # Verificador del entorno de servidor (paquete esbuild de Hooma Core y proc_open)
 │   │   ├── BuildService.php    # Ejecutor de la compilación y creador del fallback loader
 │   │   ├── ConditionEvaluator.php # Evaluador de reglas de exclusión/inclusión de vistas en backend
 │   │   └── ThemeDetector.php   # Detector de temas activos y cargador de adaptadores
@@ -67,7 +66,6 @@ graph TD
     A -->|!is_admin| C[FrontendController]
     
     B --> D[GeneralSettings]
-    B --> E[LayoutSettings]
     B --> F[BuildController]
     
     C --> G[LogoSwitcher]
@@ -112,18 +110,18 @@ Los ajustes se almacenan en un array serializado bajo la opción `hooma_smart_he
 Para maximizar el rendimiento de velocidad en el frontend del cliente, el plugin implementa un sistema híbrido de entrega de JavaScript controlado desde la pestaña **Optimización / Build**.
 
 ### 1. Compilación mediante esbuild
-- Ubicación: `build.js` y `includes/Services/BuildService.php`
-- Si el servidor tiene Node.js + NPM activos y `proc_open` habilitado en PHP, se ejecuta una build de optimización local.
-- **Feature Flags a Nivel de Compilación:** Se pasan argumentos a `build.js` (`--logo=0/1`, `--scroll=0/1`, `--initial=0/1`). `esbuild` reemplaza estas constantes globales del compilador (`HOOMA_SH_LOGO_ENABLED`, etc.) y realiza **Tree-Shaking / Dead Code Elimination**, eliminando físicamente las funciones y módulos JS no utilizados del archivo final `.min.js`.
+- Ubicación: `includes/Services/BuildService.php`
+- Si el servidor dispone de `proc_open` habilitado en PHP y el binario autónomo `esbuild` de Hooma Core está disponible (`Hooma::packages()->get('esbuild')`), se ejecuta la compilación optimizada directamente sin depender de Node.js ni NPM.
+- **Feature Flags a Nivel de Compilación:** Se inyectan flags `--define:HOOMA_SH_*` según las opciones guardadas en el panel. `esbuild` reemplaza estas constantes globales del compilador (`HOOMA_SH_LOGO_ENABLED`, `HOOMA_SH_INITIAL_ENABLED`, `HOOMA_SH_SCROLL_ENABLED`, `HOOMA_SH_RESPONSIVE_ENABLED`) y realiza **Tree-Shaking / Dead Code Elimination**, eliminando físicamente las funciones y módulos JS inactivos del archivo final `.min.js`.
 
 ### 2. Mecanismo de Fallback (Cero Errores 404)
-- Si el servidor no cumple con las condiciones óptimas (servidor compartido o sin Node.js), `BuildService` entra en modo fallback.
-- Crea un archivo "stub" ligero en `assets/js/dist/hooma-smart-header.min.js` que contiene:
+- Si el servidor no cumple con las condiciones (entorno restringido sin `proc_open` o paquete esbuild ausente), `BuildService` entra en modo fallback seguro.
+- Genera un stub en `assets/js/dist/hooma-smart-header.min.js`:
   ```javascript
   // Hooma Smart Header — Fallback Loader (build no disponible)
   import '../hooma-smart-header.js';
   ```
-- Dado que el script se encola utilizando `type="module"` (mediante el filtro `script_loader_tag` en `FrontendController.php`), el navegador del cliente resolverá e importará automáticamente y de forma nativa los módulos ES separados desde la carpeta `/assets/js/`. El sitio nunca romperá y nunca devolverá un error de recurso no encontrado.
+- Dado que el script se encola como módulo ES (`type="module"`), el navegador del cliente carga y resuelve de forma nativa los módulos ES separados desde la carpeta `/assets/js/`. El sitio nunca rompe y nunca devuelve un error 404.
 
 ---
 
@@ -153,10 +151,16 @@ Una prioridad del plugin es la entrega visual instantánea libre de parpadeos (l
   ```
 - Esto calcula y define las variables de CSS en `:root` en las etapas más tempranas de la carga del DOM para ajustar el placeholder al instante, previniendo el parpadeo del contenido antes de la carga de scripts externos.
 
-### 3. Puente de Caché Automático (Cache Bridge)
+### 3. Puente Responsivo de Altura mediante Cookies (Zero AJAX Overhead)
 - Ubicación: `assets/js/hooma-responsive-behavior.js` -> `initCacheBridge()`
-- Cuando el cálculo de altura está configurado en automático, para evitar esperar a la carga del DOM en visitas subsiguientes, el frontend del plugin compara la altura real del header contra el valor actualmente guardado en base de datos.
-- Si difieren por más de 2px, realiza una petición rápida fetch a `hooma_sh_update_height` (controlado por `LayoutSettings.php`) para guardar la altura exacta medida en caliente. En la siguiente recarga, el backend inyectará esa altura real y exacta directamente en el CSS crítico de `wp_head`, permitiendo que el placeholder del lado del servidor tenga las dimensiones perfectas.
+- Emplea un `ResizeObserver` en el cliente que monitoriza las dimensiones reales del header y las almacena localmente en la cookie `hsh_cached_height` únicamente si varían más de 2px respecto al valor previo.
+- El servidor (`LayoutResponsive.php`) lee esta cookie directamente al generar el CSS crítico en visitas subsiguientes, logrando una sincronización visual perfecta para el usuario sin peticiones AJAX ni sobrecarga en base de datos durante visitas públicas.
+
+### 4. Pull Up Crítico e Inyección en Tag (Zero CLS Margen Negativo)
+- Ubicación: `includes/Controllers/Frontend/LayoutResponsive.php` (`output_critical_css()` y `process_html_buffer()`)
+- Inyecta el atributo `data-hoo-pull-up="true"` directamente en la etiqueta de apertura del selector objetivo (ej: `#main-content`, `.main-content`) desde el servidor mediante el búfer de salida PHP.
+- Emite las reglas críticas en `<head>` (`wp_head` a prioridad 1) vinculando `[data-hoo-pull-up="true"]` y `body.hoo-sh-compensation {$target_selector}` con la variable `--hoo-pull-up-mt`.
+- La clase `hoo-sh-compensation` se inyecta desde PHP en `body_class` y se preserva en JavaScript para garantizar que el efecto esté aplicado desde el primer frame visual (*First Paint*).
 
 ---
 
@@ -264,9 +268,9 @@ Si necesitas añadir un nuevo input o funcionalidad a cualquiera de las seccione
      ```
 
 5. **Regenerar el Bundle Minificado:**
-   - Ve a la pestaña **Optimización / Build** de la interfaz administrativa de tu sitio y haz clic en **Generar Nueva Build**.
-   - O bien, si estás en tu entorno de desarrollo local, ejecuta en tu terminal dentro del directorio del plugin:
+   - Ve a la pestaña **Optimización / Build** de la interfaz administrativa del módulo y haz clic en **Generar Nueva Build**.
+   - O bien, desde terminal o CLI utilizando el paquete de esbuild de Hooma:
      ```bash
-     npm run build
+     wp-content/hooma/packages/esbuild/bin/esbuild assets/js/hooma-smart-header.js --bundle --minify --format=iife --target=es2015 --outfile=assets/js/dist/hooma-smart-header.min.js
      ```
    - ¡Tu nueva funcionalidad está lista y optimizada sin código muerto!

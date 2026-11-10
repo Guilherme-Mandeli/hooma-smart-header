@@ -8,10 +8,14 @@ export const isDeviceActive = (mobileConfig) => {
     const mConfig = mobileConfig || config.mobile;
     if (!mConfig) return true;
 
+    const mobile = config.mobile || {};
+    const bpMobile = parseInt(mobile.breakpoint) || parseInt(mobile.mobile_breakpoint) || 767;
+    const bpTablet = parseInt(mobile.tablet_breakpoint) || 980;
+
     const width = window.innerWidth;
-    const isMobileRange = width <= config.mobile.breakpoint;
-    const isTabletRange = width > config.mobile.breakpoint && width <= config.mobile.tablet_breakpoint;
-    const isDesktopRange = width > config.mobile.tablet_breakpoint;
+    const isMobileRange = width <= bpMobile;
+    const isTabletRange = width > bpMobile && width <= bpTablet;
+    const isDesktopRange = width > bpTablet;
 
     // Strict String '1' checks
     if (isMobileRange && mConfig.disable_mobile === '1') return false;

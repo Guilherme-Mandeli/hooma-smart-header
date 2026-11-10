@@ -197,4 +197,87 @@ jQuery(document).ready(function ($) {
 
     // Initial check on load
     updateCascadePreviews();
+
+    // Logo Switcher Toggle
+    var $checkbox = $('input[name="hooma_smart_header_settings[logo_switcher][enabled]"]');
+    function toggleLogoSwitcher() {
+        var isEnabled = $checkbox.is(':checked');
+        $('.hsh-logo-switcher-dependent').toggleClass('hsh-disabled-section', !isEnabled);
+    }
+
+    if ($checkbox.length) {
+        toggleLogoSwitcher();
+        $checkbox.on('change', toggleLogoSwitcher);
+    }
+
+    // Detect Width Logic
+    $('#hsh-detect-width-btn').on('click', function () {
+        var $btn = $(this);
+        var $wrap = $btn.closest('.hooma-sh-verify-wrapper');
+        var $input = $wrap.find('input');
+        var $status = $wrap.find('.hooma-sh-status');
+
+        var selector = $('input[name="hooma_smart_header_settings[selectors][logo]"]').val();
+        var urlToVerify = (typeof HoomaSH !== 'undefined' && HoomaSH.home_url) ? HoomaSH.home_url : '/';
+
+        if (!selector) {
+            alert('Por favor define un selector primero.');
+            return;
+        }
+
+        $btn.prop('disabled', true).text('Cargando...');
+        $status.text('');
+
+        // Create hidden iframe with desktop dimensions
+        var $iframe = $('<iframe id="hsh-detect-frame"></iframe>').css({
+            'position': 'fixed',
+            'top': '-9999px',
+            'left': '0',
+            'width': '1280px',
+            'height': '800px',
+            'visibility': 'hidden',
+            'z-index': '-1000'
+        });
+        $('body').append($iframe);
+
+        $iframe.attr('src', urlToVerify);
+
+        $iframe.on('load', function () {
+            try {
+                var iframeWin = $iframe[0].contentWindow;
+                var iframeDoc = iframeWin.document;
+                var el = iframeDoc.querySelector(selector);
+
+                if (el) {
+                    var rect = el.getBoundingClientRect();
+                    var width = parseFloat(rect.width.toFixed(2));
+
+                    if (width > 0) {
+                        $input.val(width);
+                        $status.css('color', 'green').text('Visualizado: ' + width + 'px');
+                    } else {
+                        $status.css('color', 'red').text('Ancho es 0');
+                    }
+                } else {
+                    $status.css('color', 'red').text('Selector no encontrado');
+                }
+
+            } catch (e) {
+                console.error('HoomaSH Detect Error:', e);
+                $status.css('color', 'red').text('Error de acceso (Security/CORS)');
+            }
+
+            $btn.prop('disabled', false).text('Detectar');
+            $iframe.remove();
+        });
+
+        // Timeout safety (10s)
+        setTimeout(function () {
+            if ($('#hsh-detect-frame').length) {
+                $btn.prop('disabled', false).text('Detectar');
+                $status.css('color', 'red').text('Timeout');
+                $('#hsh-detect-frame').remove();
+            }
+        }, 10000);
+    });
 });

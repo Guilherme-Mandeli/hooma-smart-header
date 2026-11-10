@@ -23,10 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Attach helpers and modules to window for legacy support or console debugging
     app.helpers = helpers;
     app.modules = {
-        initial: initialModule,
-        scroll: scrollModule,
-        responsive: responsiveModule,
-        logo: logoModule,
+        initial: HOOMA_SH_INITIAL_ENABLED ? initialModule : null,
+        scroll: HOOMA_SH_SCROLL_ENABLED ? scrollModule : null,
+        responsive: HOOMA_SH_RESPONSIVE_ENABLED ? responsiveModule : null,
+        logo: HOOMA_SH_LOGO_ENABLED ? logoModule : null,
         topHeader: topHeaderModule
     };
 
@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!header) {
         return;
     }
+
+    header.setAttribute('data-hoo-header', 'true');
 
     app.elements = {
         header: header,
@@ -309,32 +311,49 @@ document.addEventListener('DOMContentLoaded', () => {
     handleScroll(); // Init status classes
 
     // Sticky Observer
-    const stickyObserverTarget = config.selectors.sticky ? document.querySelector(config.selectors.sticky) : header;
-    if (stickyObserverTarget) {
-        const observer = new MutationObserver(() => {
-            let isSticky = false;
-            if (config.selectors.sticky && config.selectors.sticky.startsWith('.')) {
-                const cls = config.selectors.sticky.substring(1);
-                if (stickyObserverTarget.classList.contains(cls)) {
-                    isSticky = true;
-                }
-            } else {
-                const style = window.getComputedStyle(stickyObserverTarget);
-                if (style.position === 'fixed' || style.position === 'sticky') {
-                    isSticky = true;
-                }
-            }
+    const stickySelector = (config.selectors && config.selectors.sticky) ? config.selectors.sticky.trim() : '';
+    const customTarget = stickySelector ? document.querySelector(stickySelector) : null;
+    const stickyObserverTarget = customTarget || header;
 
-            if (isSticky) {
-                if (!header.classList.contains('hoo-is-sticky')) {
-                    header.classList.add('hoo-is-sticky');
+    const checkStickyState = () => {
+        let isSticky = false;
+        if (stickySelector) {
+            try {
+                if (header.matches(stickySelector) || (customTarget && customTarget.matches(stickySelector))) {
+                    isSticky = true;
                 }
-            } else {
-                if (header.classList.contains('hoo-is-sticky')) {
-                    header.classList.remove('hoo-is-sticky');
+            } catch (e) {
+                const classTokens = stickySelector.split(',').map(s => s.trim().replace(/^\./, ''));
+                for (const cls of classTokens) {
+                    if (header.classList.contains(cls) || (customTarget && customTarget.classList.contains(cls))) {
+                        isSticky = true;
+                        break;
+                    }
                 }
             }
-        });
-        observer.observe(stickyObserverTarget, { attributes: true, attributeFilter: ['class', 'style'] });
+        } else {
+            const style = window.getComputedStyle(header);
+            if (style.position === 'fixed' || style.position === 'sticky') {
+                isSticky = true;
+            }
+        }
+
+        if (isSticky) {
+            if (!header.classList.contains('hoo-is-sticky')) {
+                header.classList.add('hoo-is-sticky');
+            }
+        } else {
+            if (header.classList.contains('hoo-is-sticky')) {
+                header.classList.remove('hoo-is-sticky');
+            }
+        }
+    };
+
+    checkStickyState();
+
+    const stickyMutationObserver = new MutationObserver(checkStickyState);
+    stickyMutationObserver.observe(header, { attributes: true, attributeFilter: ['class', 'style'] });
+    if (customTarget && customTarget !== header) {
+        stickyMutationObserver.observe(customTarget, { attributes: true, attributeFilter: ['class', 'style'] });
     }
 });

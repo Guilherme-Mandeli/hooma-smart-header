@@ -11,8 +11,8 @@ export const topHeaderModule = {
             topHeader.setAttribute('data-hoo-top-header', 'true');
             let layout = (config && config.layout) ? config.layout : {};
             let mobileSettings = config.mobile || {};
-            let bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 768;
-            let bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 1024;
+            let bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 767;
+            let bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 980;
 
             let getBackupHTop = (width) => {
                 let isMobile = width <= bpMobile;
@@ -41,7 +41,7 @@ export const topHeaderModule = {
             let topHeaderHeight = backupHTop > 0 ? backupHTop : topHeader.offsetHeight;
 
             const toggleTopHeader = () => {
-                const isMobile = window.innerWidth <= 981;
+                const isMobile = window.innerWidth <= bpTablet;
                 
                 const state = window.HoomaSH && window.HoomaSH.state;
                 let adminBarHeight = 0;
@@ -85,7 +85,7 @@ export const topHeaderModule = {
                     document.documentElement.style.setProperty('--hoo-top-header-mt', `${value}px`);
                     document.documentElement.style.setProperty('--hoo-main-header-mt', '0px');
                     
-                    let mobileTop = value === 0 ? (adminBarHeight + topHeaderHeight) : (adminBarHeight - topHeaderHeight);
+                    let mobileTop = value === 0 ? (adminBarHeight + topHeaderHeight) : adminBarHeight;
                     document.documentElement.style.setProperty('--hoo-header-top', `${mobileTop}px`);
                 }
             };

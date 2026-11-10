@@ -53,21 +53,6 @@ if (!function_exists('_hsh_val')) {
                         class="small-text" placeholder="5">
                 </div>
             </div>
-            
-            <script>
-                jQuery(document).ready(function($) {
-                    function hsh_toggle_sb_global() {
-                         var active = $('#hsh-sb-enabled').is(':checked');
-                         if (active) {
-                             $('.hsh-sb-dependent').css('opacity', '1').css('pointer-events', 'auto');
-                         } else {
-                             $('.hsh-sb-dependent').css('opacity', '0.5').css('pointer-events', 'none');
-                         }
-                    }
-                    $('#hsh-sb-enabled').on('change', hsh_toggle_sb_global);
-                    hsh_toggle_sb_global();
-                });
-            </script>
         </div>
 </div>
 

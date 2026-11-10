@@ -22,7 +22,7 @@ class InitialBehavior
             return $classes;
         }
 
-        if (!\HoomaModules\HoomaSmartHeader\Services\ConditionEvaluator::check($behavior)) {
+        if (!\HoomaModules\HoomaSmartHeader\Services\ConditionEvaluator::check($behavior, $classes)) {
             return $classes;
         }
 

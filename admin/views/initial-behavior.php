@@ -111,41 +111,6 @@ if (!function_exists('_hsh_val')) {
                 </div>
             </div>
         </div>
-
-        <script>
-            jQuery(document).ready(function ($) {
-                function hsh_toggle_trigger() {
-                    var type = $('#hsh-trigger-type').val();
-                    if (type === 'element') {
-                        $('#hsh-trigger-distance-row').hide();
-                        $('#hsh-trigger-element-row').css('display', 'flex');
-                    } else {
-                        $('#hsh-trigger-distance-row').css('display', 'flex');
-                        $('#hsh-trigger-element-row').hide();
-                    }
-                }
-                
-                function hsh_toggle_global() {
-                    var active = $('#hsh-hide-on-scroll').is(':checked');
-                    if (active) {
-                        $('.hsh-global-dependent').css('opacity', '1').css('pointer-events', 'auto');
-                        $('.hsh-global-dependent').find('input, select, textarea').prop('disabled', false);
-                        // Re-run trigger toggle to ensure correct state
-                        hsh_toggle_trigger();
-                    } else {
-                        $('.hsh-global-dependent').css('opacity', '0.5').css('pointer-events', 'none');
-                        $('.hsh-global-dependent').find('input, select, textarea').prop('disabled', true);
-                    }
-                }
-
-                $('#hsh-trigger-type').change(hsh_toggle_trigger);
-                $('#hsh-hide-on-scroll').change(hsh_toggle_global);
-                
-                // Init
-                hsh_toggle_trigger(); 
-                hsh_toggle_global();
-            });
-        </script>
     </div>
 </div>
 

@@ -34,7 +34,16 @@ class LayoutResponsive
             $force_fixed = isset($layout['force_fixed_global']) && $layout['force_fixed_global'] === '1';
         }
 
-        if ($has_placeholder || $force_fixed) {
+        // Check if Pull Up is active
+        $target_selector = isset($layout['target']) ? trim($layout['target']) : '';
+        $run_pull_up = !empty($target_selector) && ConditionEvaluator::check([
+            'display_mode' => isset($layout['pull_up_display_mode']) ? $layout['pull_up_display_mode'] : 'exclude',
+            'display_types' => isset($layout['pull_up_display_types']) ? $layout['pull_up_display_types'] : [],
+            'display_ids' => isset($layout['pull_up_display_ids']) ? $layout['pull_up_display_ids'] : '',
+            'display_body_classes' => isset($layout['pull_up_display_body_classes']) ? $layout['pull_up_display_body_classes'] : ''
+        ], $classes);
+
+        if ($has_placeholder || $force_fixed || $run_pull_up) {
             $classes[] = 'hoo-sh-compensation'; // Master class for layout fixes
         }
 
@@ -63,51 +72,84 @@ class LayoutResponsive
         if (is_admin() || wp_doing_ajax() || wp_is_json_request()) {
             return;
         }
-        ob_start([$this, 'inject_view_transition_attribute']);
+
+        $options = Hooma::settings()->get('hooma_smart_header.settings', []);
+        $layout_opts = isset($options['layout']) ? $options['layout'] : [];
+        $target_selector = isset($layout_opts['target']) ? trim($layout_opts['target']) : '';
+
+        // Only buffer output if Pull-Up target attribute injection is actively needed
+        if (empty($target_selector)) {
+            return;
+        }
+
+        $run_pull_up = ConditionEvaluator::check([
+            'display_mode' => isset($layout_opts['pull_up_display_mode']) ? $layout_opts['pull_up_display_mode'] : 'exclude',
+            'display_types' => isset($layout_opts['pull_up_display_types']) ? $layout_opts['pull_up_display_types'] : [],
+            'display_ids' => isset($layout_opts['pull_up_display_ids']) ? $layout_opts['pull_up_display_ids'] : '',
+            'display_body_classes' => isset($layout_opts['pull_up_display_body_classes']) ? $layout_opts['pull_up_display_body_classes'] : ''
+        ]);
+
+        if ($run_pull_up) {
+            ob_start([$this, 'process_html_buffer']);
+        }
     }
 
-    public function inject_view_transition_attribute($html)
+    public function process_html_buffer($html)
     {
         if (empty($html)) {
             return $html;
         }
 
         $options = Hooma::settings()->get('hooma_smart_header.settings', []);
-        $view_transition_name = isset($options['selectors']['view_transition_name']) ? trim($options['selectors']['view_transition_name']) : '';
-        $header_selector = isset($options['selectors']['header']) ? trim($options['selectors']['header']) : '';
 
-        if (empty($view_transition_name) || empty($header_selector)) {
-            return $html;
-        }
-
-        $pattern = '';
-        if (strpos($header_selector, '#') === 0) {
-            $id = substr($header_selector, 1);
-            $pattern = '/(<[^>]+id=[\'"]' . preg_quote($id, '/') . '[\'"][^>]*>)/i';
-        } elseif (strpos($header_selector, '.') === 0) {
-            $class = substr($header_selector, 1);
-            $pattern = '/(<[^>]+class=[\'"][^\'"]*\b' . preg_quote($class, '/') . '\b[^\'"]*[\'"][^>]*>)/i';
-        } elseif (preg_match('/^[a-zA-Z0-9_-]+$/', $header_selector)) {
-            $pattern = '/(<' . preg_quote($header_selector, '/') . '\b[^>]*>)/i';
-        }
-
-        if (empty($pattern)) {
-            return $html;
-        }
-
-        $html = preg_replace_callback($pattern, function($matches) use ($view_transition_name) {
-            $tag = $matches[1];
-            
-            if (stripos($tag, 'view-transition-name=') !== false) {
-                return $tag;
+        // Inject data-hoo-pull-up="true" directly on target element tag for First Paint styling
+        $layout_opts = isset($options['layout']) ? $options['layout'] : [];
+        $target_selector = isset($layout_opts['target']) ? trim($layout_opts['target']) : '';
+        if (!empty($target_selector)) {
+            $target_pattern = $this->build_selector_regex($target_selector);
+            if (!empty($target_pattern)) {
+                $html = preg_replace_callback($target_pattern, function($matches) {
+                    $tag = $matches[1];
+                    if (stripos($tag, 'data-hoo-pull-up=') !== false) {
+                        return $tag;
+                    }
+                    $injected = ' data-hoo-pull-up="true"';
+                    return preg_replace('/^(<\w+)(\s|>)/i', '$1' . $injected . '$2', $tag);
+                }, $html, 1);
             }
-
-            $injected = ' view-transition-name="' . esc_attr($view_transition_name) . '"';
-
-            return preg_replace('/^(<\w+)(\s|>)/i', '$1' . $injected . '$2', $tag);
-        }, $html, 1);
+        }
 
         return $html;
+    }
+
+    /**
+     * Backward-compatibility wrapper for inject_view_transition_attribute
+     */
+    public function inject_view_transition_attribute($html)
+    {
+        return $this->process_html_buffer($html);
+    }
+
+    /**
+     * Helper to build regex for CSS selector (#id, .class, tag or name)
+     */
+    private function build_selector_regex($selector)
+    {
+        $selector = trim($selector);
+        if (empty($selector)) return '';
+
+        if (strpos($selector, '#') === 0) {
+            $id = substr($selector, 1);
+            return '/(<[^>]+id=[\'"]' . preg_quote($id, '/') . '[\'"][^>]*>)/i';
+        } elseif (strpos($selector, '.') === 0) {
+            $class = substr($selector, 1);
+            return '/(<[^>]+class=[\'"][^\'"]*\b' . preg_quote($class, '/') . '\b[^\'"]*[\'"][^>]*>)/i';
+        } elseif (preg_match('/^[a-zA-Z0-9_-]+$/', $selector)) {
+            // Can be tag (<main...>), ID (#main-content), or class (.main-content)
+            $escaped = preg_quote($selector, '/');
+            return '/(<(' . $escaped . '\b[^>]*|[^>]+(id=[\'"]' . $escaped . '[\'"]|class=[\'"][^\'"]*\b' . $escaped . '\b[^\'"]*)[\'"][^>]*>))/i';
+        }
+        return '';
     }
 
     public function inject_placeholder_div()
@@ -233,13 +275,30 @@ class LayoutResponsive
 
         $total_placeholder_height_desk = $final_height_desk + $backup_offset_desk;
 
+        // Negative Margin Compensation (Pull Up) Pre-calculation
+        $layout_opts = isset($options['layout']) ? $options['layout'] : [];
+        $pull_conditions = [
+            'display_mode' => isset($layout_opts['pull_up_display_mode']) ? $layout_opts['pull_up_display_mode'] : 'exclude',
+            'display_types' => isset($layout_opts['pull_up_display_types']) ? $layout_opts['pull_up_display_types'] : [],
+            'display_ids' => isset($layout_opts['pull_up_display_ids']) ? $layout_opts['pull_up_display_ids'] : '',
+            'display_body_classes' => isset($layout_opts['pull_up_display_body_classes']) ? $layout_opts['pull_up_display_body_classes'] : ''
+        ];
+        $run_pull_up = ConditionEvaluator::check($pull_conditions);
+
+        $pull_up_disable_desktop = isset($options['layout']['pull_up_disable_desktop']) && $options['layout']['pull_up_disable_desktop'] === '1';
+        $pull_up_disable_tablet  = isset($options['layout']['pull_up_disable_tablet']) && $options['layout']['pull_up_disable_tablet'] === '1';
+        $pull_up_disable_mobile  = isset($options['layout']['pull_up_disable_mobile']) && $options['layout']['pull_up_disable_mobile'] === '1';
+
+        $pull_desk   = ($run_pull_up && !$pull_up_disable_desktop) ? (-1 * $final_height_desk) : 0;
+        $pull_tablet = ($run_pull_up && !$pull_up_disable_tablet) ? (-1 * $final_height_tablet) : 0;
+        $pull_mobile = ($run_pull_up && !$pull_up_disable_mobile) ? (-1 * $final_height_mobile) : 0;
+
         // Helper function for CSS generation
-        $gen_vars = function($f_height, $b_offset, $admin_offset) {
+        $gen_vars = function($f_height, $b_offset, $admin_offset, $pull) {
             $total = $f_height + $b_offset;
             $top = $admin_offset + $b_offset;
             $max_h = $b_offset > 0 ? "{$b_offset}px" : "none";
             $over = $b_offset > 0 ? "hidden" : "visible";
-            $pull = -1 * $f_height;
             return "
                 --hoo-header-height: {$total}px;
                 --hoo-dynamic-header-height: {$total}px;
@@ -252,7 +311,7 @@ class LayoutResponsive
         };
 
         $css .= ":root {\n";
-        $css .= $gen_vars($final_height_desk, $backup_offset_desk, $admin_bar_offset);
+        $css .= $gen_vars($final_height_desk, $backup_offset_desk, $admin_bar_offset, $pull_desk);
         $css .= "    --hoo-sh-scroll-y: 0px;\n";
         $css .= "    --hoo-top-header-mt: 0px;\n";
         $css .= "    --hoo-main-header-mt: 0px;\n";
@@ -260,13 +319,13 @@ class LayoutResponsive
 
         // WP changes admin bar to 46px under 782px
         if ($admin_bar_offset > 0) {
-            $css .= "@media screen and (max-width: 782px) { :root { " . $gen_vars($final_height_mobile, $backup_offset_mobile, $admin_bar_mobile_offset) . " } }\n";
+            $css .= "@media screen and (max-width: 782px) { :root { " . $gen_vars($final_height_mobile, $backup_offset_mobile, $admin_bar_mobile_offset, $pull_mobile) . " } }\n";
         }
 
         // Custom Breakpoints overrides
         $min_tablet = $bp_mobile + 1;
-        $css .= "@media (max-width: {$bp_mobile}px) { :root { " . $gen_vars($final_height_mobile, $backup_offset_mobile, ($admin_bar_offset > 0 && $bp_mobile <= 782 ? $admin_bar_mobile_offset : $admin_bar_offset)) . " } }\n";
-        $css .= "@media (min-width: {$min_tablet}px) and (max-width: {$bp_tablet}px) { :root { " . $gen_vars($final_height_tablet, $backup_offset_tablet, ($admin_bar_offset > 0 && $bp_tablet <= 782 ? $admin_bar_mobile_offset : $admin_bar_offset)) . " } }\n";
+        $css .= "@media (max-width: {$bp_mobile}px) { :root { " . $gen_vars($final_height_mobile, $backup_offset_mobile, ($admin_bar_offset > 0 && $bp_mobile <= 782 ? $admin_bar_mobile_offset : $admin_bar_offset), $pull_mobile) . " } }\n";
+        $css .= "@media (min-width: {$min_tablet}px) and (max-width: {$bp_tablet}px) { :root { " . $gen_vars($final_height_tablet, $backup_offset_tablet, ($admin_bar_offset > 0 && $bp_tablet <= 782 ? $admin_bar_mobile_offset : $admin_bar_offset), $pull_tablet) . " } }\n";
 
 
         $view_transition_name = isset($options['selectors']['view_transition_name']) ? trim($options['selectors']['view_transition_name']) : '';
@@ -320,41 +379,33 @@ class LayoutResponsive
             }";
         }
 
-        // Divi page-container padding-top compensation
-        $css .= "
-            body:not(.et_transparent_nav) #page-container {
-                padding-top: var(--hoo-header-height) !important;
-            }
-            body.hoo-sh-compensation.admin-bar #et-main-area {
-                padding-top: 0 !important;
-            }
-        ";
+        // Divi page-container padding-top compensation (only if Divi is active and placeholder is not occupying space)
+        $is_divi = \HoomaModules\HoomaSmartHeader\Services\ThemeDetector::get_adapter()->get_name() === 'Divi';
+        if ($is_divi && !$active_placeholder) {
+            $css .= "
+                body.hoo-sh-compensation:not(.et_transparent_nav) #page-container {
+                    padding-top: var(--hoo-header-height) !important;
+                }
+                body.hoo-sh-compensation.admin-bar #et-main-area {
+                    padding-top: 0 !important;
+                }
+            ";
+        }
 
-        // Negative Margin Compensation (Pull Up)
-        $layout_opts = isset($options['layout']) ? $options['layout'] : [];
-        $pull_conditions = [
-            'display_mode' => isset($layout_opts['pull_up_display_mode']) ? $layout_opts['pull_up_display_mode'] : 'exclude',
-            'display_types' => isset($layout_opts['pull_up_display_types']) ? $layout_opts['pull_up_display_types'] : [],
-            'display_ids' => isset($layout_opts['pull_up_display_ids']) ? $layout_opts['pull_up_display_ids'] : '',
-            'display_body_classes' => isset($layout_opts['pull_up_display_body_classes']) ? $layout_opts['pull_up_display_body_classes'] : ''
-        ];
-        $run_pull_up = ConditionEvaluator::check($pull_conditions);
+        // Critical CSS Rule for Pull Up (Negative Margin)
+        $css .= "\n[data-hoo-pull-up=\"true\"] { margin-top: var(--hoo-pull-up-mt) !important; }\n";
 
-        if ($run_pull_up && $final_height_desk > 0 && !empty($target_selector)) {
-            $pull_up_disable_desktop = isset($options['layout']['pull_up_disable_desktop']) && $options['layout']['pull_up_disable_desktop'] === '1';
-            $pull_up_disable_tablet = isset($options['layout']['pull_up_disable_tablet']) && $options['layout']['pull_up_disable_tablet'] === '1';
-            $pull_up_disable_mobile = isset($options['layout']['pull_up_disable_mobile']) && $options['layout']['pull_up_disable_mobile'] === '1';
-
-            $pull_up_css_rule = "body.hoo-sh-compensation {$target_selector} { margin-top: var(--hoo-pull-up-mt) !important; }";
+        if ($run_pull_up && !empty($target_selector)) {
+            $pull_up_rule = "body.hoo-sh-compensation {$target_selector}, {$target_selector}[data-hoo-pull-up=\"true\"] { margin-top: var(--hoo-pull-up-mt) !important; }";
 
             if (!$use_custom_bp) {
-                $css .= $pull_up_css_rule;
+                $css .= "\n{$pull_up_rule}\n";
             } else {
                 $min_tablet = $bp_mobile + 1;
                 $min_desktop = $bp_tablet + 1;
-                if (!$pull_up_disable_mobile) $css .= "@media (max-width: {$bp_mobile}px) { {$pull_up_css_rule} }";
-                if (!$pull_up_disable_tablet) $css .= "@media (min-width: {$min_tablet}px) and (max-width: {$bp_tablet}px) { {$pull_up_css_rule} }";
-                if (!$pull_up_disable_desktop) $css .= "@media (min-width: {$min_desktop}px) { {$pull_up_css_rule} }";
+                if (!$pull_up_disable_mobile) $css .= "@media (max-width: {$bp_mobile}px) { {$pull_up_rule} }\n";
+                if (!$pull_up_disable_tablet) $css .= "@media (min-width: {$min_tablet}px) and (max-width: {$bp_tablet}px) { {$pull_up_rule} }\n";
+                if (!$pull_up_disable_desktop) $css .= "@media (min-width: {$min_desktop}px) { {$pull_up_rule} }\n";
             }
         }
 

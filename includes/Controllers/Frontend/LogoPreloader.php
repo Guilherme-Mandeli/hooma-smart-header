@@ -168,10 +168,11 @@ class LogoPreloader
 
         try {
             Hooma::http()->get($url, [
-                'blocking'  => false,
-                'timeout'   => 0.5,
-                'sslverify' => false,
-                'headers'   => [
+                'blocking'          => false,
+                'timeout'           => 0.5,
+                'sslverify'         => false,
+                'allow_unsafe_urls' => true,
+                'headers'           => [
                     'User-Agent' => 'HoomaSmartHeaderPreloaderTrigger/1.0'
                 ]
             ]);
@@ -232,30 +233,19 @@ class LogoPreloader
         
         try {
             $response_obj = Hooma::http()->get($url, [
-                'timeout'   => 15,
-                'sslverify' => false,
-                'headers'   => [
+                'timeout'           => 15,
+                'sslverify'         => false,
+                'allow_unsafe_urls' => true,
+                'headers'           => [
                     'User-Agent' => 'HoomaSmartHeaderPreloaderScanner/1.0'
                 ]
             ]);
-            $response = $response_obj->raw();
+            $code = $response_obj->status();
+            $html = $response_obj->body();
         } catch (\RuntimeException $e) {
-            $response = new \WP_Error('http_error', $e->getMessage());
+            $code = 500;
+            $html = '';
         }
-
-        if (is_wp_error($response)) {
-            // Guardamos los logos conocidos en caso de error HTTP para evitar re-intentos infinitos
-            $cache_data = [
-                'scanned'    => true,
-                'last_saved' => $last_saved,
-                'images'     => $native_images
-            ];
-            Hooma::cache()->set($this->cache_key, $cache_data);
-            return;
-        }
-
-        $code = wp_remote_retrieve_response_code($response);
-        $html = wp_remote_retrieve_body($response);
 
         if ($code !== 200 || empty($html)) {
             $cache_data = [
@@ -270,8 +260,8 @@ class LogoPreloader
         // Instanciar DOMDocument y DOMXPath para el análisis
         libxml_use_internal_errors(true);
         $doc = new \DOMDocument();
-        $html_encoded = function_exists('mb_convert_encoding') ? mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8') : $html;
-        @$doc->loadHTML($html_encoded);
+        @$doc->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
         $xpath = new \DOMXPath($doc);
 
         $query = '';

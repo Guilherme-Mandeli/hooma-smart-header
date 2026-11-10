@@ -249,3 +249,204 @@ input[type="checkbox"].hsh-toggle:disabled {
 .hsh-build-console .error-msg { color: #f44747; font-weight: bold; }
 .hsh-build-console .warning-msg { color: #ce9178; }
 .hsh-build-console pre { margin: 0; white-space: pre-wrap; word-break: break-all; background: transparent; color: inherit; padding: 0; border: none; }
+
+/* Logo Switcher Styles */
+.hsh-logo-columns {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.hsh-logo-column {
+    background: #ffffff;
+    padding: 24px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    flex: 1;
+    min-width: 320px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.hsh-logo-column:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    border-color: #cbd5e1 !important;
+}
+
+.hsh-logo-column-title {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hsh-logo-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.hsh-logo-card:hover {
+    border-color: #cbd5e1;
+    background-color: #f1f5f9;
+}
+
+.hsh-logo-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.hsh-logo-card-title {
+    font-weight: 600;
+    font-size: 11px;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hsh-logo-preview-container {
+    height: 120px;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.hsh-logo-preview-container.has-image {
+    border-style: solid;
+    border-color: #e2e8f0;
+}
+
+.hsh-logo-preview-container.is-inherited {
+    border-style: dashed !important;
+    border-color: #fde68a !important;
+    background-color: #fffdf5 !important;
+}
+
+.hsh-logo-preview-container.is-inherited::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(#fcd34d 1.5px, transparent 1.5px);
+    background-size: 8px 8px;
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.hsh-logo-preview-img {
+    max-width: 90%;
+    max-height: 100px;
+    object-fit: contain;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+    position: relative;
+}
+
+.hsh-logo-preview-img:hover {
+    transform: scale(1.04);
+}
+
+.hsh-logo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #94a3b8;
+    font-size: 11px;
+    user-select: none;
+}
+
+.hsh-logo-placeholder svg {
+    width: 28px;
+    height: 28px;
+    stroke: currentColor;
+    fill: none;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+.hsh-logo-card:hover .hsh-logo-placeholder svg {
+    transform: scale(1.1);
+    color: #64748b;
+}
+
+.hsh-inherited-pill {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.hsh-logo-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hsh-logo-upload-btn {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    padding: 0 12px !important;
+    height: 32px !important;
+    line-height: 30px !important;
+    font-size: 12px !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.hsh-logo-upload-btn:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+.hsh-logo-remove-btn {
+    color: #ef4444 !important;
+    text-decoration: none !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    transition: color 0.2s ease !important;
+    cursor: pointer;
+}
+
+.hsh-logo-remove-btn:hover {
+    color: #dc2626 !important;
+    text-decoration: underline !important;
+}

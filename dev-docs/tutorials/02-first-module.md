@@ -62,6 +62,10 @@ $controller = new \HoomaModules\MiPrimerModulo\Controllers\WelcomeController();
 // El autoloader cargará automáticamente la clase al instanciarla
 ```
 
+> [!WARNING]
+> **Importante si usas la Plantilla Base (`hooma-empty-module`)**:
+> Si estás utilizando la plantilla vacía preconfigurada en lugar de empezar desde cero, el archivo [Lifecycle.php](../../includes/Lifecycle.php) viene con el namespace por defecto `namespace HoomaModules\HoomaEmptyModule;`. **Es obligatorio cambiarlo** para que apunte al namespace de tu módulo (por ejemplo: `namespace HoomaModules\MiPrimerModulo;`). Si no lo haces, el cargador de Hooma no encontrará el archivo al activar/desinstalar el módulo.
+
 ---
 
 Siguiente capítulo: **[Capítulo 03: Crear Página Admin](03-admin-page.md)**

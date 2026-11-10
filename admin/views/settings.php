@@ -96,6 +96,39 @@ if (!function_exists('_hsh_val')) {
                         </div>
                     </div>
                 </div>
+
+                <div class="hsh-row">
+                    <div class="hsh-row-label">
+                        <strong>Sticky Selector / Clase</strong>
+                        <p class="description">Selector o clase de estado que adquiere el header al fijarse (Ej: <code>.is-sticky</code>, <code>.et-fixed-header</code>).</p>
+                    </div>
+                    <div class="hsh-row-control">
+                        <div class="hooma-sh-verify-wrapper">
+                            <input type="text" class="regular-text"
+                                name="hooma_smart_header_settings[selectors][sticky]"
+                                value="<?php echo esc_attr(_hsh_val($options, 'selectors.sticky')); ?>"
+                                placeholder="<?php echo esc_attr(isset($defaults['sticky']) ? $defaults['sticky'] : '.is-sticky'); ?>">
+                            <span class="hooma-sh-status"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hsh-row">
+                    <div class="hsh-row-label">
+                        <strong>Logo Selector</strong>
+                        <p class="description">Selector de la imagen del logotipo en la cabecera (Ej: <code>.custom-logo, .site-logo img</code>).</p>
+                    </div>
+                    <div class="hsh-row-control">
+                        <div class="hooma-sh-verify-wrapper">
+                            <input type="text" class="regular-text"
+                                name="hooma_smart_header_settings[selectors][logo]"
+                                value="<?php echo esc_attr(_hsh_val($options, 'selectors.logo')); ?>"
+                                placeholder="<?php echo esc_attr(isset($defaults['logo']) ? $defaults['logo'] : '.custom-logo, .site-logo img'); ?>">
+                            <button type="button" class="button hooma-sh-verify-btn">Verificar</button>
+                            <span class="hooma-sh-status"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

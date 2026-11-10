@@ -8,8 +8,12 @@ Todos los módulos integrados con Hooma Core pueden implementar hooks de activac
 
 Para que un módulo responda a eventos de su ciclo de vida, debe cumplir dos condiciones físicas:
 
-1.  Existir una clase llamada `Lifecycle` bajo el namespace raíz de tu módulo, en la ubicación física `includes/Lifecycle.php`.
+1.  Existir una clase llamada `Lifecycle` bajo el namespace raíz de tu módulo, en la ubicación física [includes/Lifecycle.php](../includes/Lifecycle.php).
 2.  Implementar la interfaz global `Hooma_Module_Lifecycle_Interface`.
+
+> [!IMPORTANT]
+> **Modificar el namespace al crear tu módulo**:
+> El namespace `HoomaModules\MiModulo` es ilustrativo. Al duplicar la plantilla `hooma-empty-module`, **debes actualizar obligatoriamente** la línea `namespace HoomaModules\HoomaEmptyModule;` de [Lifecycle.php](../includes/Lifecycle.php) por el de tu módulo (por ejemplo: `namespace HoomaModules\MiNuevoModulo;`). Si no se modifica, Hooma Core no podrá encontrar la clase para ejecutar la instalación/desinstalación.
 
 ### Estructura Mínima
 ```php

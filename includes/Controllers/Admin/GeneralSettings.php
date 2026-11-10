@@ -22,14 +22,23 @@ class GeneralSettings
         }
 
         $selector = isset($_POST['selector']) ? sanitize_text_field($_POST['selector']) : '';
-        $url = isset($_POST['url']) ? esc_url($_POST['url']) : home_url();
+        $raw_url = isset($_POST['url']) ? esc_url_raw($_POST['url']) : home_url();
+
+        // Validate URL host to prevent SSRF against internal/external networks
+        $home_host = wp_parse_url(home_url(), PHP_URL_HOST);
+        $target_host = wp_parse_url($raw_url, PHP_URL_HOST);
+        $url = ($target_host === $home_host) ? $raw_url : home_url();
 
         if (empty($selector)) {
             wp_send_json_error('Selector vacío');
         }
 
         try {
-            $response_obj = Hooma::http()->get($url, ['timeout' => 10, 'sslverify' => false]);
+            $response_obj = Hooma::http()->get($url, [
+                'timeout'           => 10,
+                'sslverify'         => false,
+                'allow_unsafe_urls' => true
+            ]);
             $html = $response_obj->body();
             if (!$response_obj->successful() || empty($html)) {
                 wp_send_json_error('Respuesta vacía o error del sitio: HTTP ' . $response_obj->status());
@@ -43,14 +52,14 @@ class GeneralSettings
 
         libxml_use_internal_errors(true);
         $dom = new \DOMDocument();
-        $dom->loadHTML($html);
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         libxml_clear_errors();
 
         $xpath = new \DOMXPath($dom);
         $xpath_query = $this->css_to_xpath($selector);
 
         if ($xpath_query) {
-            $nodes = $xpath->query($xpath_query);
+            $nodes = @$xpath->query($xpath_query);
             if ($nodes && $nodes->length > 0) {
                 $found = true;
                 $count = $nodes->length;
@@ -67,6 +76,11 @@ class GeneralSettings
     public function ajax_restore_defaults()
     {
         check_ajax_referer('hooma_sh_nonce', 'nonce');
+
+        if (!Hooma::auth()->can('manage_options')) {
+            wp_send_json_error('No tienes permisos suficientes.');
+        }
+
         $defaults = ThemeDetector::detect();
         wp_send_json_success($defaults);
     }
@@ -74,17 +88,30 @@ class GeneralSettings
     private function css_to_xpath($selector)
     {
         $selector = trim($selector);
-        if (strpos($selector, '#') === 0) {
-            $id = substr($selector, 1);
-            return "//*[@id='$id']";
+        if (empty($selector)) return null;
+
+        $sub_selectors = array_filter(array_map('trim', explode(',', $selector)));
+        $xpaths = [];
+
+        foreach ($sub_selectors as $sub) {
+            $parts = preg_split('/\s+/', $sub);
+            $query = '';
+            foreach ($parts as $part) {
+                if (strpos($part, '#') === 0) {
+                    $id = substr($part, 1);
+                    $query .= "//*[@id='$id']";
+                } elseif (strpos($part, '.') === 0) {
+                    $class = substr($part, 1);
+                    $query .= "//*[contains(concat(' ', normalize-space(@class), ' '), ' $class ')]";
+                } elseif (preg_match('/^[a-zA-Z0-9_-]+$/', $part)) {
+                    $query .= "//" . $part;
+                }
+            }
+            if (!empty($query)) {
+                $xpaths[] = $query;
+            }
         }
-        if (strpos($selector, '.') === 0) {
-            $class = substr($selector, 1);
-            return "//*[contains(concat(' ', normalize-space(@class), ' '), ' $class ')]";
-        }
-        if (preg_match('/^[a-zA-Z0-9]+$/', $selector)) {
-            return "//" . $selector;
-        }
-        return null;
+
+        return !empty($xpaths) ? implode(' | ', $xpaths) : null;
     }
 }

@@ -65,6 +65,7 @@
 
     /* Instant/None */
     [data-hoo-header="true"],
+    .hoo-anim-none.hoo-is-sticky,
     .hoo-anim-none .hoo-is-sticky,
     .hoo-force-fixed {
         position: fixed !important;
@@ -105,11 +106,13 @@
         display: block !important;
     }
 
-    /* Logo Transition Helper */
-    header img {
-        -webkit-transition: opacity 0.2s ease;
-        -o-transition: opacity 0.2s ease;
-        transition: opacity 0.2s ease;
+    /* Logo Transition Helper (scoped to logo switcher) */
+    .hoo-logo-wrapper img,
+    header img.hoo-logo-default,
+    header img.hoo-logo-alt {
+        -webkit-transition: opacity 0.4s ease;
+        -o-transition: opacity 0.4s ease;
+        transition: opacity 0.4s ease;
     }
 
     /* Remove legacy admin-bar margins, now handled by --hoo-header-top */

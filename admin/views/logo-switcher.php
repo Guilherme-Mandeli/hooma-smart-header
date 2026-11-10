@@ -21,207 +21,6 @@ if (!function_exists('_hsh_val')) {
 ?>
 
 <form method="post" action="" id="hooma-sh-form">
-    <style>
-    .hsh-logo-columns {
-        display: flex;
-        gap: 28px;
-        flex-wrap: wrap;
-        width: 100%;
-    }
-
-    .hsh-logo-column {
-        background: #ffffff;
-        padding: 24px !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 12px !important;
-        flex: 1;
-        min-width: 320px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-sizing: border-box;
-    }
-
-    .hsh-logo-column:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-        border-color: #cbd5e1 !important;
-    }
-
-    .hsh-logo-column-title {
-        margin-top: 0;
-        margin-bottom: 20px;
-        font-size: 16px;
-        font-weight: 700;
-        color: #0f172a;
-        border-bottom: 2px solid #f1f5f9;
-        padding-bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .hsh-logo-card {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 20px;
-        transition: all 0.2s ease;
-        position: relative;
-    }
-
-    .hsh-logo-card:hover {
-        border-color: #cbd5e1;
-        background-color: #f1f5f9;
-    }
-
-    .hsh-logo-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-
-    .hsh-logo-card-title {
-        font-weight: 600;
-        font-size: 11px;
-        color: #475569;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .hsh-logo-preview-container {
-        height: 120px;
-        background: #ffffff;
-        border: 1px dashed #cbd5e1;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        overflow: hidden;
-        margin-bottom: 12px;
-        transition: all 0.2s ease;
-    }
-
-    .hsh-logo-preview-container.has-image {
-        border-style: solid;
-        border-color: #e2e8f0;
-    }
-
-    .hsh-logo-preview-container.is-inherited {
-        border-style: dashed !important;
-        border-color: #fde68a !important;
-        background-color: #fffdf5 !important;
-    }
-
-    .hsh-logo-preview-container.is-inherited::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: radial-gradient(#fcd34d 1.5px, transparent 1.5px);
-        background-size: 8px 8px;
-        opacity: 0.25;
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    .hsh-logo-preview-img {
-        max-width: 90%;
-        max-height: 100px;
-        object-fit: contain;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 1;
-        position: relative;
-    }
-
-    .hsh-logo-preview-img:hover {
-        transform: scale(1.04);
-    }
-
-    .hsh-logo-placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-        color: #94a3b8;
-        font-size: 11px;
-        user-select: none;
-    }
-
-    .hsh-logo-placeholder svg {
-        width: 28px;
-        height: 28px;
-        stroke: currentColor;
-        fill: none;
-        opacity: 0.6;
-        transition: all 0.2s ease;
-    }
-
-    .hsh-logo-card:hover .hsh-logo-placeholder svg {
-        transform: scale(1.1);
-        color: #64748b;
-    }
-
-    .hsh-inherited-pill {
-        background: #fffbeb;
-        color: #b45309;
-        border: 1px solid #fde68a;
-        padding: 2px 8px;
-        border-radius: 9999px;
-        font-size: 9px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: inline-block;
-    }
-
-    .hsh-logo-actions {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .hsh-logo-upload-btn {
-        background: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
-        color: #334155 !important;
-        border-radius: 6px !important;
-        font-weight: 600 !important;
-        padding: 0 12px !important;
-        height: 32px !important;
-        line-height: 30px !important;
-        font-size: 12px !important;
-        transition: all 0.2s ease !important;
-        cursor: pointer;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-
-    .hsh-logo-upload-btn:hover {
-        background: #f8fafc !important;
-        border-color: #94a3b8 !important;
-        color: #0f172a !important;
-    }
-
-    .hsh-logo-remove-btn {
-        color: #ef4444 !important;
-        text-decoration: none !important;
-        font-size: 11px !important;
-        font-weight: 600 !important;
-        transition: color 0.2s ease !important;
-        cursor: pointer;
-    }
-
-    .hsh-logo-remove-btn:hover {
-        color: #dc2626 !important;
-        text-decoration: underline !important;
-    }
-    </style>
     <?php settings_fields('hooma_smart_header_group'); ?>
     <input type="hidden" name="hooma_smart_header_settings[logo_switcher][sentinel_logo]" value="1">
 
@@ -260,7 +59,7 @@ if (!function_exists('_hsh_val')) {
             </div>
 
             <!-- Configuration -->
-            <div class="hsh-row">
+            <div class="hsh-row hsh-logo-switcher-dependent">
                 <div class="hsh-row-label">
                     <strong>Selector del logo a ser cambiado</strong>
                     <p class="description">El selector de la etiqueta <code>&lt;img&gt;</code> que se alternará. (Por defecto: <code>.custom-logo, .site-logo img</code>).</p>
@@ -271,7 +70,7 @@ if (!function_exists('_hsh_val')) {
                 </div>
             </div>
 
-            <div class="hsh-row">
+            <div class="hsh-row hsh-logo-switcher-dependent">
                 <div class="hsh-row-label">
                     <strong>Dimensiones</strong>
                     <p class="description">Déjalo vacío para usar el original. "Detectar" buscará el atributo <code>width</code> o estilo inline.</p>
@@ -290,7 +89,7 @@ if (!function_exists('_hsh_val')) {
                 </div>
             </div>
 
-            <div class="hsh-row">
+            <div class="hsh-row hsh-logo-switcher-dependent">
                 <div class="hsh-row-label">
                     <strong>Selector del elemento a ser observado</strong>
                     <p class="description">El elemento que será observado (Ej.:<code>#logo</code>, <code>.logo-container img</code>).</p>
@@ -302,7 +101,7 @@ if (!function_exists('_hsh_val')) {
                 </div>
             </div>
 
-            <div class="hsh-row">
+            <div class="hsh-row hsh-logo-switcher-dependent">
                 <div class="hsh-row-label">
                     <strong>Esperando por la clase</strong>
                     <p class="description">La clase que provoca el cambio (e.g. <code>is-fixed</code>, <code>hoo-is-sticky</code>).</p>
@@ -347,7 +146,7 @@ if (!function_exists('_hsh_val')) {
     $alt_mobile_has_src = !empty($alt_mobile_src);
     $alt_mobile_is_inherited = !$alt_logo_mobile && (!empty($alt_logo_tablet) || !empty($alt_logo));
     ?>
-    <div class="hooma-sh-section">
+    <div class="hooma-sh-section hsh-logo-switcher-dependent">
         <div class="hooma-sh-section-header">
             <h2>Logotipos Responsivos</h2>
             <p class="description">Puedes definir logotipos únicos para Tablet y Móvil. Si no se especifican, se aplicará el diseño en cascada (Móvil hereda de Tablet, y Tablet de Escritorio).</p>
@@ -532,7 +331,7 @@ if (!function_exists('_hsh_val')) {
     </div>
 
     <!-- Device Settings -->
-    <div class="hooma-sh-section">
+    <div class="hooma-sh-section hsh-logo-switcher-dependent">
         <div class="hooma-sh-section-header">
             <h2>Ajustes por Dispositivos</h2>
         </div>
@@ -586,7 +385,7 @@ if (!function_exists('_hsh_val')) {
     </div>
 
     <!-- Display Conditions -->
-    <div class="hooma-sh-section">
+    <div class="hooma-sh-section hsh-logo-switcher-dependent">
         <div class="hooma-sh-section-header">
             <h2>Condiciones de visualización</h2>
             <p class="description">Determinan dónde se aplicará el cambio de logo.</p>
@@ -645,115 +444,3 @@ if (!function_exists('_hsh_val')) {
         <div id="hsh-build-console" class="hsh-build-console"></div>
     </div>
 </form>
-<script>
-    jQuery(document).ready(function ($) {
-        var $checkbox = $('input[name="hooma_smart_header_settings[logo_switcher][enabled]"]');
-        var $container = $('.hooma-sh-content');
-
-        // Elements to disable (exclude the switcher itself)
-        // We select inputs, selects, buttons not inside the switcher label
-        // Actually, easiest is to target everything and then re-enable the switcher
-
-        function toggleLogoSwitcher() {
-            var isEnabled = $checkbox.is(':checked');
-
-            // All inputs/buttons inside .hooma-sh-content
-            var $allInputs = $container.find('input, select, textarea, button, a.hsh-remove-button, a.hsh-upload-button');
-
-            // Exclude the checkbox itself
-            var $targets = $allInputs.not($checkbox);
-
-            if (isEnabled) {
-                // Enable
-                $targets.prop('disabled', false);
-                $targets.css('opacity', '1');
-                $targets.css('pointer-events', 'auto');
-                // Ensure specific button styles if needed
-                $('.hsh-disabled-overlay').remove();
-            } else {
-                // Disable
-                $targets.prop('disabled', true);
-                $targets.css('opacity', '0.5');
-                $targets.css('pointer-events', 'none');
-            }
-        }
-
-        // Init
-        toggleLogoSwitcher();
-
-        // Change
-        $checkbox.on('change', toggleLogoSwitcher);
-        // Detect Width Logic
-        // Detect Width Logic
-        $('#hsh-detect-width-btn').on('click', function () {
-            var $btn = $(this);
-            var $wrap = $btn.closest('.hooma-sh-verify-wrapper');
-            var $input = $wrap.find('input');
-            var $status = $wrap.find('.hooma-sh-status');
-
-            var selector = $('input[name="hooma_smart_header_settings[selectors][logo]"]').val();
-            var urlToVerify = (typeof HoomaSH !== 'undefined' && HoomaSH.home_url) ? HoomaSH.home_url : '/';
-
-            if (!selector) {
-                alert('Por favor define un selector primero.');
-                return;
-            }
-
-            $btn.prop('disabled', true).text('Cargando...');
-            $status.text('');
-
-            // Create hidden iframe with desktop dimensions
-            var $iframe = $('<iframe id="hsh-detect-frame"></iframe>').css({
-                'position': 'fixed',
-                'top': '-9999px',
-                'left': '0',
-                'width': '1280px',
-                'height': '800px',
-                'visibility': 'hidden',
-                'z-index': '-1000'
-            });
-            $('body').append($iframe);
-
-            $iframe.attr('src', urlToVerify);
-
-            $iframe.on('load', function () {
-                try {
-                    var iframeWin = $iframe[0].contentWindow;
-                    var iframeDoc = iframeWin.document;
-                    var el = iframeDoc.querySelector(selector);
-
-                    if (el) {
-                        var rect = el.getBoundingClientRect();
-                        var width = parseFloat(rect.width.toFixed(2));
-
-                        if (width > 0) {
-                            $input.val(width);
-                            $status.css('color', 'green').text('Visualizado: ' + width + 'px');
-                        } else {
-                            $status.css('color', 'red').text('Ancho es 0');
-                        }
-                    } else {
-                        $status.css('color', 'red').text('Selector no encontrado');
-                    }
-
-                } catch (e) {
-                    console.error('HoomaSH Detect Error:', e);
-                    $status.css('color', 'red').text('Error de acceso (Security/CORS)');
-                }
-
-                $btn.prop('disabled', false).text('Detectar');
-                $iframe.remove();
-            });
-
-            // Timeout safety (10s)
-            setTimeout(function () {
-                if ($('#hsh-detect-frame').length) {
-                    $btn.prop('disabled', false).text('Detectar');
-                    $status.css('color', 'red').text('Timeout');
-                    $('#hsh-detect-frame').remove();
-                }
-            }, 10000);
-        });
-
-    });
-</script>

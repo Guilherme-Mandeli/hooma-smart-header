@@ -141,8 +141,8 @@ export const responsiveModule = {
                 // using the backup height settings configured for the active viewport.
                 const width = window.innerWidth;
                 const mobileSettings = config.mobile || {};
-                const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 768;
-                const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 1024;
+                const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 767;
+                const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 980;
                 
                 const isMobile = width <= bpMobile;
                 const isTablet = width > bpMobile && width <= bpTablet;
@@ -205,28 +205,29 @@ export const responsiveModule = {
                 placeholder.setAttribute('data-hoo-active', 'true');
             }
             document.body.classList.add('hoo-sh-compensation');
+            document.body.classList.add('hooma-sh-has-placeholder');
         } else {
             const ph = document.getElementById('hoo-sh-placeholder');
             if (ph) {
                 ph.removeAttribute('data-hoo-active');
             }
-            if (!this.isForceFixedActive()) {
+            document.body.classList.remove('hooma-sh-has-placeholder');
+            const isPullUpActive = !!(config.layout && config.layout.target && config.run_pull_up && !this.shouldDisablePullUp(config));
+            if (!this.isForceFixedActive() && !isPullUpActive) {
                 document.body.classList.remove('hoo-sh-compensation');
             } else {
                 document.body.classList.add('hoo-sh-compensation');
             }
         }
-        
-        document.body.classList.remove('hooma-sh-has-placeholder');
 
-        // Divi page-container padding-top fix
+        // Divi page-container padding-top fix (only if placeholder is not active)
         const pageContainer = document.getElementById('page-container');
         if (pageContainer) {
-            if (document.body.classList.contains('et_transparent_nav')) {
+            if (document.body.classList.contains('et_transparent_nav') || config.layout.placeholder === '1') {
                 if (pageContainer.style.getPropertyValue('padding-top')) {
                     pageContainer.style.removeProperty('padding-top');
                 }
-            } else {
+            } else if (this.isForceFixedActive() || document.body.classList.contains('hoo-sh-compensation')) {
                 const finalPadding = this.compensationHeight + 'px';
                 if (pageContainer.style.getPropertyValue('padding-top') !== finalPadding) {
                     const computedPadding = window.getComputedStyle(pageContainer).paddingTop;
@@ -238,15 +239,21 @@ export const responsiveModule = {
         }
 
         // Negative Margin (Pull Up)
-        const targetSelector = config.layout.target;
+        const targetSelector = config.layout && config.layout.target;
         if (targetSelector) {
             const targetEl = document.querySelector(targetSelector);
             if (targetEl) {
                 let shouldRun = config.run_pull_up && !this.shouldDisablePullUp(config);
 
                 if (shouldRun) {
-                    targetEl.setAttribute('data-hoo-pull-up', 'true');
-                    document.documentElement.style.setProperty('--hoo-pull-up-mt', '-' + this.compensationHeight + 'px');
+                    if (!targetEl.hasAttribute('data-hoo-pull-up')) {
+                        targetEl.setAttribute('data-hoo-pull-up', 'true');
+                    }
+                    const pullVal = '-' + this.compensationHeight + 'px';
+                    const curPull = document.documentElement.style.getPropertyValue('--hoo-pull-up-mt');
+                    if (curPull !== pullVal) {
+                        document.documentElement.style.setProperty('--hoo-pull-up-mt', pullVal);
+                    }
                 } else {
                     targetEl.removeAttribute('data-hoo-pull-up');
                     document.documentElement.style.setProperty('--hoo-pull-up-mt', '0px');
@@ -286,8 +293,8 @@ export const responsiveModule = {
         const settings = config.layout || {};
         const mobileSettings = config.mobile || {};
 
-        const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 768;
-        const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 1024;
+        const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 767;
+        const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 980;
 
         const width = window.innerWidth;
 

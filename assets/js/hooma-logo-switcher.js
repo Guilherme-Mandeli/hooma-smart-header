@@ -34,9 +34,10 @@ export const logoModule = {
             defaultLogoEl.setAttribute('data-hsh-orig-sizes', defaultLogoEl.getAttribute('sizes') || '');
         }
 
-        // Check if there is at least one alt logo defined in any breakpoint
-        const hasAltLogo = settings.alt_logo || settings.alt_logo_tablet || settings.alt_logo_mobile;
-        if (!hasAltLogo) {
+        // Check if there is at least one custom logo configured
+        const hasAltLogo = !!(settings.alt_logo || settings.alt_logo_tablet || settings.alt_logo_mobile);
+        const hasInitLogo = !!(settings.initial_logo || settings.initial_logo_tablet || settings.initial_logo_mobile);
+        if (!hasAltLogo && !hasInitLogo) {
             return;
         }
 
@@ -60,34 +61,36 @@ export const logoModule = {
             defaultLogoEl.style.height = 'auto';
         }
 
-        // Create Alt Logo Image if it doesn't exist
-        let altLogoEl = wrapper.querySelector('.hoo-logo-alt');
-        if (!altLogoEl) {
-            altLogoEl = document.createElement('img');
-            altLogoEl.className = 'hoo-logo-alt';
-            
-            // Resolve initial alt logo URL to put as first src
-            const { alt: resolvedAlt } = this.resolveLogos(config);
-            altLogoEl.src = resolvedAlt || '';
-            
-            altLogoEl.alt = defaultLogoEl.alt ? defaultLogoEl.alt + ' (Alt)' : 'Logo (Alt)';
-            altLogoEl.style.position = 'absolute';
-            altLogoEl.style.top = '0';
-            altLogoEl.style.left = '0';
-            altLogoEl.style.width = '100%';
-            altLogoEl.style.height = '100%';
-            altLogoEl.style.objectFit = 'contain';
-            altLogoEl.style.opacity = '0';
-            altLogoEl.style.transition = 'opacity 0.4s ease';
-            altLogoEl.style.zIndex = '2';
+        // Create Alt Logo Image if it doesn't exist and an alternate logo is configured
+        if (hasAltLogo) {
+            let altLogoEl = wrapper.querySelector('.hoo-logo-alt');
+            if (!altLogoEl) {
+                altLogoEl = document.createElement('img');
+                altLogoEl.className = 'hoo-logo-alt';
+                
+                // Resolve initial alt logo URL to put as first src
+                const { alt: resolvedAlt } = this.resolveLogos(config);
+                altLogoEl.src = resolvedAlt || '';
+                
+                altLogoEl.alt = defaultLogoEl.alt ? defaultLogoEl.alt + ' (Alt)' : 'Logo (Alt)';
+                altLogoEl.style.position = 'absolute';
+                altLogoEl.style.top = '0';
+                altLogoEl.style.left = '0';
+                altLogoEl.style.width = '100%';
+                altLogoEl.style.height = '100%';
+                altLogoEl.style.objectFit = 'contain';
+                altLogoEl.style.opacity = '0';
+                altLogoEl.style.transition = 'opacity 0.4s ease';
+                altLogoEl.style.zIndex = '2';
 
-            defaultLogoEl.classList.add('hoo-logo-default');
-            defaultLogoEl.style.transition = 'opacity 0.4s ease';
-            defaultLogoEl.style.zIndex = '1';
-            defaultLogoEl.style.position = 'relative';
-            defaultLogoEl.style.setProperty('opacity', '1', 'important');
+                defaultLogoEl.classList.add('hoo-logo-default');
+                defaultLogoEl.style.transition = 'opacity 0.4s ease';
+                defaultLogoEl.style.zIndex = '1';
+                defaultLogoEl.style.position = 'relative';
+                defaultLogoEl.style.setProperty('opacity', '1', 'important');
 
-            wrapper.appendChild(altLogoEl);
+                wrapper.appendChild(altLogoEl);
+            }
         }
 
         // 4. Initial Check
@@ -117,8 +120,8 @@ export const logoModule = {
         const settings = config.logo_switcher || {};
         const mobileSettings = config.mobile || {};
 
-        const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 768;
-        const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 1024;
+        const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 767;
+        const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 980;
         const width = window.innerWidth;
 
         let isMobile = width <= bpMobile;
@@ -145,8 +148,8 @@ export const logoModule = {
         const settings = config.logo_switcher;
         const mobileSettings = config.mobile || {};
 
-        const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 768;
-        const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 1024;
+        const bpMobile = parseInt(mobileSettings.breakpoint) || parseInt(mobileSettings.mobile_breakpoint) || 767;
+        const bpTablet = parseInt(mobileSettings.tablet_breakpoint) || 980;
 
         const width = window.innerWidth;
 

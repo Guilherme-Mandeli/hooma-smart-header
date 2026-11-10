@@ -68,20 +68,17 @@ class DiviThemeAdapter implements ThemeAdapterInterface
         libxml_use_internal_errors(true);
 
         $doc = new \DOMDocument();
-        // Use flags to handle HTML5 better, though Divi is mostly standard
-        $html_encoded = function_exists('mb_convert_encoding') ? mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8') : $html;
-        $doc->loadHTML($html_encoded, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        // Load with UTF-8 encoding hint to avoid deprecated mb_convert_encoding HTML-ENTITIES in PHP 8.2+
+        @$doc->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 
         $xpath = new \DOMXPath($doc);
 
-        // Divi specific selectors
+        // Divi specific header-scoped selectors to avoid replacing unrelated footer or content logos
         $imgs = $xpath->query(
-            '//img[
-                contains(@class,"et_pb_menu") 
-                or contains(@class,"et_pb_menu__logo")
-                or contains(@class,"logo")
-                or @id="logo"
-            ]'
+            "//*[@id='main-header']//img[@id='logo' or contains(@class,'logo')] |
+             //*[@id='top-header']//img[@id='logo' or contains(@class,'logo')] |
+             //*[contains(@class,'et_pb_menu__logo-wrap')]//img |
+             //*[contains(@class,'et_pb_menu')]//img[contains(@class,'logo')]"
         );
 
         $replaced = false;

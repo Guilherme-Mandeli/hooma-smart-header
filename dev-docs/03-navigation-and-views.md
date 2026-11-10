@@ -18,6 +18,16 @@ defined( 'HOOMA_PATH' ) || exit;
 return array(
     'menu_title' => 'Gestión de Reservas', // Título visible del menú lateral
     
+    // Enlaces de "Acceso rápido" en la vista de detalle del módulo en el Core Dashboard (Opcional)
+    'quick_links' => array(
+        array(
+            'label'  => 'Documentación Externa',
+            'url'    => 'https://ejemplo.com/docs',
+            'target' => '_blank', // Opcional (_blank, _self)
+            'class'  => 'button button-secondary', // Opcional
+        ),
+    ),
+
     'tabs'       => array(
         'index'    => array(
             'label' => 'Inicio',           // Carga la vista admin/views/index.php
@@ -32,6 +42,11 @@ return array(
     ),
 );
 ```
+
+### Enlaces de Acceso Rápido (Quick Access Card)
+Si defines la clave `'quick_links'`, Hooma Core mostrará una tarjeta lateral especial llamada **"Acceso rápido"** cuando los administradores hagan clic en la vista detallada de tu módulo en el Dashboard.
+
+También puedes inyectar o modificar dinámicamente estos enlaces mediante el filtro PHP de WordPress `hooma_module_quick_links`.
 
 ---
 

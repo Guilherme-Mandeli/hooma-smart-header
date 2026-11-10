@@ -26,7 +26,8 @@ hooma-mi-modulo/
 │   └── js/
 │       ├── admin.js          # Scripts específicos del admin
 │       └── frontend.js       # Scripts específicos del lado público
-└── docs/                     # Documentación interna del módulo
+├── docs/                     # Documentación propia del módulo (visible en .hooma-detail-main)
+└── dev-docs/                 # Documentación técnica de desarrollo (excluida de .hooma-detail-main)
 ```
 
 ---
@@ -90,5 +91,9 @@ Si vas a desarrollar un nuevo módulo utilizando esta plantilla, sigue estos sen
     - Si creas clases en `includes/`, asegúrate de que usen el namespace adecuado. 
     - Por ejemplo, si tu carpeta se llama `mi-nuevo-modulo`, el namespace sugerido por el cargador será:
       `namespace HoomaModules\MiNuevoModulo;`
-    - Abre `includes/Lifecycle.php` y actualiza la declaración del `namespace` a `HoomaModules\MiNuevoModulo`.
+    - Abre [Lifecycle.php](includes/Lifecycle.php) y actualiza la declaración del `namespace` a `HoomaModules\MiNuevoModulo`.
+    
+    > [!WARNING]
+    > **Paso Crítico**: Es obligatorio cambiar el namespace en `includes/Lifecycle.php` para que coincida con el nombre de tu módulo (en StudlyCase). Si dejas el namespace por defecto (`HoomaModules\HoomaEmptyModule`), el autoloader de Hooma Core no podrá localizar la clase `Lifecycle` de tu módulo, rompiendo los procesos de activación, actualización y desinstalación.
+    
 4.  **Configurar Navegación**: Abre `config/navigation.php` y actualiza el valor de `menu_title` con el título del menú de tu módulo.

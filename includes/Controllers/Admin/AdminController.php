@@ -330,6 +330,11 @@ class AdminController
 
     public function enqueue_assets($hook)
     {
+        // Only enqueue assets on this module's settings page
+        if (!isset($_GET['page']) || $_GET['page'] !== $this->slug) {
+            return;
+        }
+
         if (function_exists('wp_enqueue_media')) {
             wp_enqueue_media();
         }

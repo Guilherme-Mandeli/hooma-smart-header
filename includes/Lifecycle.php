@@ -51,9 +51,10 @@ class Lifecycle implements Hooma_Module_Lifecycle_Interface
 	public static function uninstall(array $manifest)
 	{
 		// Limpieza completa de opciones y cachés del módulo usando el Core de Hooma
-		Hooma::settings()->delete_namespace('hooma_smart_header');
+		Hooma::settings()->delete('hooma_smart_header.settings');
 		Hooma::cache()->delete('hooma_sh_header_images_cache');
 		Hooma::cache()->delete('hooma_sh_last_run_strategy');
+		Hooma::cache()->delete('hsh_preloader_scan_lock');
 		Hooma::scheduler()->unschedule('hooma_smart_header.warm_cache');
 	}
 }
